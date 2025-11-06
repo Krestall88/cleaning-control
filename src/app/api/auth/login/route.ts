@@ -88,15 +88,27 @@ export async function POST(req: NextRequest) {
   } catch (error) {
     console.error('❌ Ошибка в API логина:', error);
     
+    let errorMessage = 'Внутренняя ошибка сервера';
+    let errorDetails = 'Неизвестная ошибка';
+    
     if (error instanceof Error) {
       console.error('Детали ошибки:', error.message);
       console.error('Стек ошибки:', error.stack);
+      errorDetails = error.message;
+      
+      // Проверяем ошибки подключения к БД
+      if (error.message.includes('Can\'t reach database server')) {
+        errorMessage = 'Ошибка подключения к базе данных';
+        errorDetails = 'Не удается подключиться к базе данных. Проверьте DATABASE_URL в переменных окружения.';
+      } else if (error.message.includes('prisma')) {
+        errorMessage = 'Ошибка базы данных';
+      }
     }
     
     return NextResponse.json(
       { 
-        message: 'Внутренняя ошибка сервера',
-        details: error instanceof Error ? error.message : 'Неизвестная ошибка'
+        message: errorMessage,
+        details: process.env.NODE_ENV === 'development' ? errorDetails : undefined
       },
       { status: 500 }
     );

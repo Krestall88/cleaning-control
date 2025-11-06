@@ -14,11 +14,14 @@ export async function middleware(req: NextRequest) {
     pathname.startsWith('/api/auth') ||
     pathname.startsWith('/api/client-bindings') ||
     pathname.startsWith('/api/telegram/notify-selection') ||
+    pathname.startsWith('/api/setup-webhook') ||
+    pathname.startsWith('/api/webhooks') ||
     pathname.startsWith('/static') ||
     PUBLIC_FILE.test(pathname) ||
     pathname === '/login' ||
     pathname === '/auth/login' ||
-    pathname === '/choose-object'
+    pathname === '/choose-object' ||
+    pathname === '/telegram-setup'
   ) {
     return NextResponse.next();
   }
