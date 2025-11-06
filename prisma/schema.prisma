@@ -1,0 +1,616 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+generator erd {
+  provider = "prisma-erd-generator"
+  output   = "../docs/erd.md"
+  theme    = "dark"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id                       String                  @id @default(cuid())
+  createdAt                DateTime                @default(now())
+  updatedAt                DateTime                @updatedAt
+  email                    String                  @unique
+  name                     String?
+  password                 String
+  role                     Role                    @default(MANAGER)
+  phone                    String?
+  assignedAdditionalTasks  AdditionalTask[]        @relation("AssignedAdditionalTasks")
+  completedAdditionalTasks AdditionalTask[]        @relation("CompletedAdditionalTasks")
+  auditLogs                AuditLog[]
+  completedChecklists      Checklist[]             @relation("CompletedChecklists")
+  createdChecklists        Checklist[]
+  createdObjects           CleaningObject[]        @relation("CreatedBy")
+  managedObjects           CleaningObject[]        @relation("ManagedBy")
+  assignedDeputyAdmins     DeputyAdminAssignment[] @relation("AssignedDeputyAdmins")
+  deputyAdminAssignments   DeputyAdminAssignment[] @relation("DeputyAdminAssignments")
+  excludedObjects          ExcludedObject[]        @relation("ExcludedObjects")
+  inventoryExpenses        InventoryExpense[]      @relation("InventoryExpenses")
+  setInventoryLimits       InventoryLimit[]        @relation("SetInventoryLimits")
+  setExpenseCategoryLimits ExpenseCategoryLimit[]  @relation("SetExpenseCategoryLimits")
+  photoReports             PhotoReport[]
+  assignedReportingTasks   ReportingTask[]         @relation("AssignedReportingTasks")
+  createdReportingTasks    ReportingTask[]         @relation("CreatedReportingTasks")
+  createdRequests          Request[]
+  managedSites             Site[]                  @relation("SiteManager")
+  completedTasks           Task[]
+  taskExecutions           TaskExecution[]         @relation("TaskExecutions")
+  notifications            Notification[]
+  adminComments            TaskAdminComment[]      @relation("AdminComments")
+  reportingTaskAttachments ReportingTaskAttachment[] @relation("ReportingTaskAttachments")
+  additionalTaskComments   AdditionalTaskComment[] @relation("AdditionalTaskComments")
+}
+
+model CleaningObject {
+  id                          String                  @id @default(cuid())
+  createdAt                   DateTime                @default(now())
+  updatedAt                   DateTime                @updatedAt
+  name                        String
+  address                     String
+  documents                   Json?
+  timezone                    String?
+  workingHours                Json?
+  workingDays                 String[]
+  autoChecklistEnabled        Boolean                 @default(true)
+  lastChecklistDate           DateTime?
+  creatorId                   String
+  managerId                   String?
+  requirePhotoForCompletion   Boolean                 @default(false)
+  completionRequirements      Json?
+  requireCommentForCompletion Boolean                 @default(false)
+  description                 String?
+  notes                       String?
+  totalArea                   Float?
+  allowManagerEdit            Boolean                 @default(false)
+  additionalTasks             AdditionalTask[]
+  checklists                  Checklist[]
+  creator                     User                    @relation("CreatedBy", fields: [creatorId], references: [id])
+  manager                     User?                   @relation("ManagedBy", fields: [managerId], references: [id])
+  clientBindings              ClientBinding[]
+  deputyAdminAssignments      DeputyAdminAssignment[] @relation("DeputyAdminObjects")
+  excludedObjects             ExcludedObject?         @relation("ExcludedObjects")
+  inventoryExpenses           InventoryExpense[]
+  inventoryLimits             InventoryLimit[]
+  expenseCategoryLimits       ExpenseCategoryLimit[]
+  objectStructures            ObjectStructure[]
+  photoReports                PhotoReport[]
+  reportingTasks              ReportingTask[]         @relation("ReportingTasks")
+  requests                    Request[]
+  rooms                       Room[]
+  sites                       Site[]
+  taskExecutions              TaskExecution[]
+  techCards                   TechCard[]
+}
+
+model Room {
+  id              String               @id @default(cuid())
+  createdAt       DateTime             @default(now())
+  name            String
+  description     String?
+  area            Float?
+  objectId        String
+  roomGroupId     String?
+  checklists      Checklist[]
+  cleaningObjects CleaningObjectItem[]
+  object          CleaningObject       @relation(fields: [objectId], references: [id], onDelete: Cascade)
+  roomGroup       RoomGroup?           @relation(fields: [roomGroupId], references: [id])
+  tasks           Task[]
+  techCards       TechCard[]
+}
+
+model Site {
+  id          String         @id @default(cuid())
+  createdAt   DateTime       @default(now())
+  name        String
+  description String?
+  area        Float?
+  objectId    String
+  managerId   String?
+  comment     String?
+  manager     User?          @relation("SiteManager", fields: [managerId], references: [id])
+  object      CleaningObject @relation(fields: [objectId], references: [id], onDelete: Cascade)
+  zones       Zone[]
+}
+
+model Zone {
+  id          String      @id @default(cuid())
+  createdAt   DateTime    @default(now())
+  name        String
+  description String?
+  area        Float?
+  siteId      String
+  roomGroups  RoomGroup[]
+  site        Site        @relation(fields: [siteId], references: [id], onDelete: Cascade)
+}
+
+model RoomGroup {
+  id          String   @id @default(cuid())
+  createdAt   DateTime @default(now())
+  name        String
+  description String?
+  area        Float?
+  zoneId      String
+  rooms       Room[]
+  zone        Zone     @relation(fields: [zoneId], references: [id], onDelete: Cascade)
+}
+
+model CleaningObjectItem {
+  id          String     @id @default(cuid())
+  createdAt   DateTime   @default(now())
+  name        String
+  description String?
+  roomId      String
+  room        Room       @relation(fields: [roomId], references: [id], onDelete: Cascade)
+  techCards   TechCard[]
+}
+
+model TechCard {
+  id                   String              @id @default(cuid())
+  createdAt            DateTime            @default(now())
+  name                 String
+  workType             String
+  frequency            String
+  description          String?
+  objectId             String
+  roomId               String?
+  cleaningObjectItemId String?
+  notes                String?
+  period               String?
+  workDetails          String?
+  seasonality          String?
+  frequencyDays        Int?
+  maxDelayHours        Int?
+  preferredTime        String?
+  autoGenerate         Boolean             @default(true)
+  isActive             Boolean             @default(true)
+  timeSlots            String[]
+  executions           TaskExecution[]
+  cleaningObjectItem   CleaningObjectItem? @relation(fields: [cleaningObjectItemId], references: [id])
+  object               CleaningObject      @relation(fields: [objectId], references: [id], onDelete: Cascade)
+  room                 Room?               @relation(fields: [roomId], references: [id], onDelete: Cascade)
+}
+
+model Checklist {
+  id                String         @id @default(cuid())
+  createdAt         DateTime       @default(now())
+  date              DateTime       @db.Date
+  objectId          String
+  roomId            String?
+  creatorId         String
+  completedAt       DateTime?
+  completedById     String?
+  completionComment String?
+  completionPhotos  String[]
+  name              String?
+  completedBy       User?          @relation("CompletedChecklists", fields: [completedById], references: [id])
+  creator           User           @relation(fields: [creatorId], references: [id])
+  object            CleaningObject @relation(fields: [objectId], references: [id], onDelete: Cascade)
+  room              Room?          @relation(fields: [roomId], references: [id])
+  photoReports      PhotoReport[]
+  tasks             Task[]
+}
+
+model Task {
+  id                String             @id @default(cuid())
+  createdAt         DateTime           @default(now())
+  description       String
+  status            TaskStatus         @default(NEW)
+  photoUrl          String?
+  objectName        String?
+  roomName          String?
+  scheduledStart    DateTime?
+  scheduledEnd      DateTime?
+  failureReason     String?
+  checklistId       String?
+  roomId            String?
+  requestId         String?
+  completedById     String?
+  completedAt       DateTime?
+  completionComment String?
+  completionPhotos  String[]
+  photoReports      PhotoReport[]
+  checklist         Checklist?         @relation(fields: [checklistId], references: [id], onDelete: Cascade)
+  completedBy       User?              @relation(fields: [completedById], references: [id])
+  request           Request?           @relation(fields: [requestId], references: [id])
+  room              Room?              @relation(fields: [roomId], references: [id])
+  notifications     Notification[]
+  adminComments     TaskAdminComment[]
+}
+
+model Request {
+  id           String         @id @default(cuid())
+  createdAt    DateTime       @default(now())
+  updatedAt    DateTime       @updatedAt
+  title        String
+  description  String
+  status       RequestStatus  @default(NEW)
+  source       String?
+  objectId     String
+  creatorId    String
+  photoReports PhotoReport[]
+  creator      User           @relation(fields: [creatorId], references: [id])
+  object       CleaningObject @relation(fields: [objectId], references: [id], onDelete: Cascade)
+  tasks        Task[]
+}
+
+// Справочник статей расходов
+model ExpenseCategory {
+  id          String                  @id @default(cuid())
+  createdAt   DateTime                @default(now())
+  updatedAt   DateTime                @updatedAt
+  name        String                  @unique
+  description String?
+  isActive    Boolean                 @default(true)
+  sortOrder   Int                     @default(0)
+  limits      ExpenseCategoryLimit[]
+  expenses    InventoryExpense[]
+
+  @@index([isActive])
+}
+
+// Лимиты по статьям расходов для объектов
+model ExpenseCategoryLimit {
+  id                String          @id @default(cuid())
+  createdAt         DateTime        @default(now())
+  updatedAt         DateTime        @updatedAt
+  amount            Decimal         @db.Decimal(10, 2)
+  periodType        ExpensePeriodType @default(MONTHLY)
+  month             Int?            // Для MONTHLY
+  year              Int?            // Для MONTHLY
+  isRecurring       Boolean         @default(false)
+  startDate         DateTime?       // Для SEMI_ANNUAL, ANNUAL
+  endDate           DateTime?
+  objectId          String
+  categoryId        String
+  setById           String
+  object            CleaningObject  @relation(fields: [objectId], references: [id], onDelete: Cascade)
+  category          ExpenseCategory @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+  setBy             User            @relation("SetExpenseCategoryLimits", fields: [setById], references: [id])
+
+  @@unique([objectId, categoryId, periodType, month, year])
+  @@index([objectId])
+  @@index([categoryId])
+  @@index([month, year])
+}
+
+// Старая модель для обратной совместимости (можно удалить после миграции)
+model InventoryLimit {
+  id          String         @id @default(cuid())
+  createdAt   DateTime       @default(now())
+  updatedAt   DateTime       @updatedAt
+  amount      Decimal        @db.Decimal(10, 2)
+  month       Int
+  year        Int
+  isRecurring Boolean        @default(false)
+  endDate     DateTime?
+  objectId    String
+  setById     String
+  object      CleaningObject @relation(fields: [objectId], references: [id], onDelete: Cascade)
+  setBy       User           @relation("SetInventoryLimits", fields: [setById], references: [id])
+
+  @@unique([objectId, month, year])
+  @@index([objectId])
+  @@index([month, year])
+}
+
+model InventoryExpense {
+  id           String          @id @default(cuid())
+  createdAt    DateTime        @default(now())
+  amount       Decimal         @db.Decimal(10, 2)
+  description  String?
+  month        Int
+  year         Int
+  objectId     String
+  categoryId   String?         // Новое поле - статья расхода
+  recordedById String
+  object       CleaningObject  @relation(fields: [objectId], references: [id], onDelete: Cascade)
+  category     ExpenseCategory? @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+  recordedBy   User            @relation("InventoryExpenses", fields: [recordedById], references: [id])
+
+  @@index([objectId])
+  @@index([categoryId])
+  @@index([month, year])
+}
+
+model PhotoReport {
+  id          String          @id @default(cuid())
+  createdAt   DateTime        @default(now())
+  url         String
+  comment     String?
+  uploaderId  String
+  objectId    String?
+  checklistId String?
+  requestId   String?
+  taskId      String?
+  checklist   Checklist?      @relation(fields: [checklistId], references: [id])
+  object      CleaningObject? @relation(fields: [objectId], references: [id])
+  request     Request?        @relation(fields: [requestId], references: [id])
+  task        Task?           @relation(fields: [taskId], references: [id])
+  uploader    User            @relation(fields: [uploaderId], references: [id])
+}
+
+model AuditLog {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+  action    String
+  entity    String
+  entityId  String
+  details   Json?
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
+}
+
+model ClientBinding {
+  id               String         @id @default(cuid())
+  createdAt        DateTime       @default(now())
+  telegramId       String
+  telegramUsername String?
+  firstName        String?
+  lastName         String?
+  objectId         String
+  object           CleaningObject @relation(fields: [objectId], references: [id], onDelete: Cascade)
+
+  @@unique([telegramId, objectId])
+}
+
+model AdditionalTask {
+  id                 String                     @id @default(cuid())
+  createdAt          DateTime                   @default(now())
+  updatedAt          DateTime                   @updatedAt
+  title              String
+  content            String
+  source             String
+  sourceDetails      Json
+  attachments        String[]
+  status             AdditionalTaskStatus       @default(NEW)
+  objectId           String
+  assignedToId       String
+  takenAt            DateTime?
+  completedAt        DateTime?
+  completedById      String?
+  completionNote     String?
+  completionPhotos   String[]                   @default([])
+  receivedAt         DateTime
+  assignedTo         User                       @relation("AssignedAdditionalTasks", fields: [assignedToId], references: [id])
+  completedBy        User?                      @relation("CompletedAdditionalTasks", fields: [completedById], references: [id])
+  object             CleaningObject             @relation(fields: [objectId], references: [id], onDelete: Cascade)
+  comments           AdditionalTaskComment[]
+}
+
+model AdditionalTaskComment {
+  id        String         @id @default(cuid())
+  createdAt DateTime       @default(now())
+  taskId    String
+  userId    String
+  content   String
+  isAdmin   Boolean        @default(false)
+  task      AdditionalTask @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  user      User           @relation("AdditionalTaskComments", fields: [userId], references: [id])
+}
+
+model DeputyAdminAssignment {
+  id            String         @id @default(cuid())
+  createdAt     DateTime       @default(now())
+  deputyAdminId String
+  objectId      String
+  assignedById  String
+  assignedBy    User           @relation("AssignedDeputyAdmins", fields: [assignedById], references: [id])
+  deputyAdmin   User           @relation("DeputyAdminAssignments", fields: [deputyAdminId], references: [id])
+  object        CleaningObject @relation("DeputyAdminObjects", fields: [objectId], references: [id])
+
+  @@unique([deputyAdminId, objectId])
+}
+
+model ObjectStructure {
+  id                 String         @id @default(cuid())
+  createdAt          DateTime       @default(now())
+  updatedAt          DateTime       @updatedAt
+  objectName         String
+  objectAddress      String?
+  siteName           String?
+  zoneName           String?
+  roomGroupName      String?
+  roomName           String?
+  cleaningObjectName String?
+  techCardName       String
+  frequency          String
+  notes              String?
+  period             String?
+  objectId           String
+  siteId             String?
+  zoneId             String?
+  roomGroupId        String?
+  roomId             String?
+  cleaningObjectId   String?
+  techCardId         String
+  workType           String?
+  description        String?
+  object             CleaningObject @relation(fields: [objectId], references: [id], onDelete: Cascade)
+
+  @@index([objectId])
+  @@index([objectName])
+}
+
+model ReportingTask {
+  id                String                @id @default(cuid())
+  title             String
+  description       String?
+  createdAt         DateTime              @default(now())
+  updatedAt         DateTime              @updatedAt
+  dueDate           DateTime?
+  completedAt       DateTime?
+  objectId          String
+  createdById       String
+  assignedToId      String
+  completionComment String?
+  status            ReportingTaskStatus   @default(NEW)
+  priority          ReportingTaskPriority @default(MEDIUM)
+  assignedTo        User                  @relation("AssignedReportingTasks", fields: [assignedToId], references: [id])
+  createdBy         User                  @relation("CreatedReportingTasks", fields: [createdById], references: [id])
+  object            CleaningObject        @relation("ReportingTasks", fields: [objectId], references: [id], onDelete: Cascade)
+  attachments       ReportingTaskAttachment[]
+
+  @@index([objectId])
+  @@index([assignedToId])
+  @@index([status])
+}
+
+// Вложения к задачам отчетности (фотоотчеты и документы)
+model ReportingTaskAttachment {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+  
+  fileName     String
+  originalName String
+  fileSize     Int
+  mimeType     String
+  filePath     String
+  
+  // Связи
+  taskId       String
+  task         ReportingTask @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  uploadedById String
+  uploadedBy   User @relation("ReportingTaskAttachments", fields: [uploadedById], references: [id])
+  
+  @@index([taskId])
+  @@index([uploadedById])
+}
+
+model ExcludedObject {
+  id           String         @id @default(cuid())
+  objectId     String         @unique
+  excludedAt   DateTime       @default(now())
+  excludedById String
+  excludedBy   User           @relation("ExcludedObjects", fields: [excludedById], references: [id])
+  object       CleaningObject @relation("ExcludedObjects", fields: [objectId], references: [id], onDelete: Cascade)
+}
+
+model TaskExecution {
+  id           String              @id @default(cuid())
+  techCardId   String
+  objectId     String
+  managerId    String
+  scheduledFor DateTime
+  dueDate      DateTime
+  executedAt   DateTime?
+  status       TaskExecutionStatus @default(PENDING)
+  comment      String?
+  photos       String[]
+  createdAt    DateTime            @default(now())
+  updatedAt    DateTime            @updatedAt
+  manager      User                @relation("TaskExecutions", fields: [managerId], references: [id])
+  object       CleaningObject      @relation(fields: [objectId], references: [id], onDelete: Cascade)
+  techCard     TechCard            @relation(fields: [techCardId], references: [id], onDelete: Cascade)
+
+  @@index([managerId, scheduledFor])
+  @@index([objectId, scheduledFor])
+  @@index([status, scheduledFor])
+  @@index([techCardId, scheduledFor])
+}
+
+model TaskAdminComment {
+  id              String               @id @default(cuid())
+  createdAt       DateTime             @default(now())
+  updatedAt       DateTime             @updatedAt
+  content         String
+  type            TaskAdminCommentType
+  taskId          String
+  adminId         String
+  parentCommentId String?
+  admin           User                 @relation("AdminComments", fields: [adminId], references: [id], onDelete: Cascade)
+  parentComment   TaskAdminComment?    @relation("CommentReplies", fields: [parentCommentId], references: [id])
+  replies         TaskAdminComment[]   @relation("CommentReplies")
+  task            Task                 @relation(fields: [taskId], references: [id], onDelete: Cascade)
+
+  @@map("task_admin_comments")
+}
+
+model Notification {
+  id            String   @id @default(cuid())
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  userId        String
+  type          String
+  title         String
+  message       String
+  isRead        Boolean  @default(false)
+  relatedTaskId String?
+  relatedTask   Task?    @relation(fields: [relatedTaskId], references: [id])
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("notifications")
+}
+
+enum Role {
+  ADMIN
+  DEPUTY
+  MANAGER
+  CLIENT
+  DEPUTY_ADMIN
+  ACCOUNTANT
+}
+
+enum TaskStatus {
+  NEW
+  AVAILABLE
+  IN_PROGRESS
+  COMPLETED
+  OVERDUE
+  FAILED
+  CLOSED_WITH_PHOTO
+}
+
+enum RequestStatus {
+  NEW
+  IN_PROGRESS
+  DONE
+  REJECTED
+}
+
+enum AdditionalTaskStatus {
+  NEW
+  IN_PROGRESS
+  COMPLETED
+}
+
+enum ReportingTaskStatus {
+  NEW
+  IN_PROGRESS
+  COMPLETED
+  CANCELLED
+}
+
+enum ReportingTaskPriority {
+  LOW
+  MEDIUM
+  HIGH
+  URGENT
+}
+
+enum TaskExecutionStatus {
+  PENDING
+  COMPLETED
+  OVERDUE
+  SKIPPED
+}
+
+enum TaskAdminCommentType {
+  ADMIN_NOTE
+  COMPLETION_FEEDBACK
+  INSTRUCTION
+  QUALITY_CHECK
+}
+
+enum ExpensePeriodType {
+  DAILY           // Ежедневный лимит
+  MONTHLY         // Ежемесячный лимит
+  SEMI_ANNUAL     // Раз в 6 месяцев
+  ANNUAL          // Годовой лимит
+}
