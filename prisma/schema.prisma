@@ -11,6 +11,8 @@ generator erd {
 datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")
+  // Отключаем prepared statements для работы с Supabase Transaction Pooler
+  directUrl = env("DATABASE_URL")
 }
 
 model User {

@@ -6,10 +6,11 @@ declare global {
   var prisma: PrismaClient | undefined;
 }
 
+// Для Vercel + Supabase Transaction Pooler: отключаем prepared statements
 export const prisma =
   global.prisma ||
   new PrismaClient({
-    log: ['query'],
+    log: process.env.NODE_ENV === 'development' ? ['query', 'error', 'warn'] : ['error'],
   });
 
 if (process.env.NODE_ENV !== 'production') global.prisma = prisma;
