@@ -83,15 +83,23 @@ async function main() {
     }
   });
 
+  const managersData = [
+    { name: 'Козлов Дмитрий Александрович', phone: '+7 (916) 111-22-33' },
+    { name: 'Смирнова Ольга Николаевна', phone: '+7 (916) 222-33-44' },
+    { name: 'Новиков Сергей Владимирович', phone: '+7 (916) 333-44-55' },
+    { name: 'Волкова Анна Игоревна', phone: '+7 (916) 444-55-66' },
+    { name: 'Морозов Алексей Юрьевич', phone: '+7 (916) 555-66-77' }
+  ];
+
   const managers = await Promise.all(
-    Array(4).fill(0).map((_, i) =>
+    managersData.map((m, i) =>
       prisma.user.create({
         data: {
           email: `manager${i + 1}@example.com`,
-          name: faker.person.fullName(),
+          name: m.name,
           password: hashedPassword,
           role: 'MANAGER',
-          phone: faker.phone.number('+7 (9##) ###-##-##')
+          phone: m.phone
         }
       })
     )
@@ -147,28 +155,88 @@ async function main() {
 
   // 3. Создаем объекты уборки
   console.log('🏢 Создание объектов уборки...');
-  const objects = await Promise.all(
-    Array(8).fill(0).map((_, i) =>
-      prisma.cleaningObject.create({
-        data: {
-          name: `${faker.company.name()} - ${faker.location.street()}`,
-          address: faker.location.streetAddress(true),
-          creatorId: admin.id,
-          managerId: managers[i % managers.length].id,
-          workingDays: ['ПН', 'ВТ', 'СР', 'ЧТ', 'ПТ'],
-          workingHours: {
-            start: '08:00',
-            end: '20:00'
-          },
-          totalArea: faker.number.int({ min: 100, max: 1000 }),
-          autoChecklistEnabled: true,
-          requirePhotoForCompletion: i % 2 === 0,
-          description: `Объект ${i + 1} - ${faker.company.catchPhrase()}`,
-          notes: faker.lorem.sentence()
-        }
-      })
-    )
-  );
+  
+  const obj1 = await prisma.cleaningObject.create({
+    data: {
+      name: 'Производственный комплекс "Техмаш"',
+      address: 'г. Москва, ул. Промышленная, д. 15',
+      creatorId: admin.id,
+      managerId: managers[0].id,
+      workingDays: ['ПН', 'ВТ', 'СР', 'ЧТ', 'ПТ'],
+      workingHours: { start: '08:00', end: '20:00' },
+      totalArea: 2500,
+      autoChecklistEnabled: true,
+      requirePhotoForCompletion: true,
+      description: 'Машиностроительный завод с производственными цехами и административным корпусом',
+      notes: 'Требуется ежедневная уборка производственных помещений. Особое внимание к чистоте в сборочном цехе.'
+    }
+  });
+
+  const obj2 = await prisma.cleaningObject.create({
+    data: {
+      name: 'Бизнес-центр "Столичный"',
+      address: 'г. Москва, Ленинский проспект, д. 45',
+      creatorId: admin.id,
+      managerId: managers[1].id,
+      workingDays: ['ПН', 'ВТ', 'СР', 'ЧТ', 'ПТ'],
+      workingHours: { start: '07:00', end: '22:00' },
+      totalArea: 3200,
+      autoChecklistEnabled: true,
+      requirePhotoForCompletion: false,
+      description: 'Современный офисный центр класса B+ с арендаторами',
+      notes: 'Уборка общих зон ежедневно, офисов арендаторов - по графику'
+    }
+  });
+
+  const obj3 = await prisma.cleaningObject.create({
+    data: {
+      name: 'ЖК "Солнечный"',
+      address: 'г. Москва, ул. Солнечная, д. 7',
+      creatorId: admin.id,
+      managerId: managers[2].id,
+      workingDays: ['ПН', 'ВТ', 'СР', 'ЧТ', 'ПТ', 'СБ', 'ВС'],
+      workingHours: { start: '06:00', end: '22:00' },
+      totalArea: 4500,
+      autoChecklistEnabled: true,
+      requirePhotoForCompletion: true,
+      description: 'Жилой комплекс из 3 корпусов, 150 квартир',
+      notes: 'Ежедневная уборка подъездов и придомовой территории. Генеральная уборка - еженедельно.'
+    }
+  });
+
+  const obj4 = await prisma.cleaningObject.create({
+    data: {
+      name: 'Торговый центр "Мега Плаза"',
+      address: 'г. Москва, Кутузовский проспект, д. 23',
+      creatorId: admin.id,
+      managerId: managers[3].id,
+      workingDays: ['ПН', 'ВТ', 'СР', 'ЧТ', 'ПТ', 'СБ', 'ВС'],
+      workingHours: { start: '06:00', end: '23:00' },
+      totalArea: 5000,
+      autoChecklistEnabled: true,
+      requirePhotoForCompletion: true,
+      description: 'Крупный торговый центр с магазинами, кафе и кинотеатром',
+      notes: 'Уборка в режиме работы ТЦ. Генеральная уборка после закрытия.'
+    }
+  });
+
+  const obj5 = await prisma.cleaningObject.create({
+    data: {
+      name: 'Медицинский центр "Здоровье+"',
+      address: 'г. Москва, ул. Медицинская, д. 12',
+      creatorId: admin.id,
+      managerId: managers[4].id,
+      workingDays: ['ПН', 'ВТ', 'СР', 'ЧТ', 'ПТ', 'СБ'],
+      workingHours: { start: '07:00', end: '21:00' },
+      totalArea: 1200,
+      autoChecklistEnabled: true,
+      requirePhotoForCompletion: true,
+      description: 'Частная многопрофильная клиника',
+      notes: 'Повышенные требования к санитарии. Использование медицинских дезинфицирующих средств обязательно.'
+    }
+  });
+
+  const objects = [obj1, obj2, obj3, obj4, obj5];
   console.log(`✅ Создано объектов: ${objects.length}\n`);
 
   // 4. Назначаем объекты заместителю администратора
@@ -191,85 +259,296 @@ async function main() {
   console.log('🏗️ Создание структуры объектов...');
   let totalRooms = 0;
   
-  for (const obj of objects.slice(0, 4)) { // Для первых 4 объектов
-    const site = await prisma.site.create({
-      data: {
-        name: `Корпус ${faker.number.int({ min: 1, max: 5 })}`,
-        objectId: obj.id,
-        managerId: obj.managerId,
-        area: faker.number.int({ min: 200, max: 800 })
-      }
-    });
+  // Производственный комплекс "Техмаш" - 2 менеджера на разных участках
+  const adminSite = await prisma.site.create({
+    data: {
+      name: 'Административный корпус',
+      objectId: obj1.id,
+      managerId: managers[0].id, // Козлов
+      area: 600
+    }
+  });
 
-    const zone = await prisma.zone.create({
-      data: {
-        name: `Зона ${faker.location.cardinalDirection()}`,
-        siteId: site.id,
-        area: faker.number.int({ min: 100, max: 400 })
-      }
-    });
+  const adminZone = await prisma.zone.create({
+    data: { name: 'Первый этаж', siteId: adminSite.id, area: 300 }
+  });
 
-    const roomGroup = await prisma.roomGroup.create({
-      data: {
-        name: `Этаж ${faker.number.int({ min: 1, max: 10 })}`,
-        zoneId: zone.id,
-        area: faker.number.int({ min: 50, max: 200 })
-      }
-    });
+  const officeGroup = await prisma.roomGroup.create({
+    data: { name: 'Офисная зона', zoneId: adminZone.id, area: 130 }
+  });
 
-    // Создаем помещения
-    const rooms = await Promise.all(
-      Array(3).fill(0).map((_, i) =>
-        prisma.room.create({
-          data: {
-            name: `Помещение ${i + 1}`,
-            objectId: obj.id,
-            roomGroupId: roomGroup.id,
-            area: faker.number.int({ min: 20, max: 100 }),
-            description: faker.lorem.sentence()
-          }
-        })
-      )
-    );
-    totalRooms += rooms.length;
-  }
+  await prisma.room.createMany({
+    data: [
+      { name: 'Приемная', objectId: obj1.id, roomGroupId: officeGroup.id, area: 25, description: 'Входная зона с ресепшн' },
+      { name: 'Переговорная №1', objectId: obj1.id, roomGroupId: officeGroup.id, area: 30, description: 'Конференц-зал на 12 человек' },
+      { name: 'Кабинет директора', objectId: obj1.id, roomGroupId: officeGroup.id, area: 35, description: 'Рабочий кабинет с зоной отдыха' },
+      { name: 'Бухгалтерия', objectId: obj1.id, roomGroupId: officeGroup.id, area: 40, description: 'Открытое офисное пространство' }
+    ]
+  });
+  totalRooms += 4;
+
+  const prodSite = await prisma.site.create({
+    data: {
+      name: 'Производственный корпус',
+      objectId: obj1.id,
+      managerId: managers[1].id, // Смирнова - второй менеджер
+      area: 1900
+    }
+  });
+
+  const ceh1Zone = await prisma.zone.create({
+    data: { name: 'Цех №1', siteId: prodSite.id, area: 1000 }
+  });
+
+  const assemblyGroup = await prisma.roomGroup.create({
+    data: { name: 'Сборочный участок', zoneId: ceh1Zone.id, area: 440 }
+  });
+
+  await prisma.room.createMany({
+    data: [
+      { name: 'Линия сборки А', objectId: obj1.id, roomGroupId: assemblyGroup.id, area: 200, description: 'Основная производственная линия' },
+      { name: 'Линия сборки Б', objectId: obj1.id, roomGroupId: assemblyGroup.id, area: 180, description: 'Вспомогательная линия' },
+      { name: 'Склад комплектующих', objectId: obj1.id, roomGroupId: assemblyGroup.id, area: 60, description: 'Хранение деталей' }
+    ]
+  });
+  totalRooms += 3;
+
+  // Бизнес-центр "Столичный"
+  const bcSite = await prisma.site.create({
+    data: { name: 'Башня А', objectId: obj2.id, managerId: obj2.managerId, area: 800 }
+  });
+
+  const bcZone1 = await prisma.zone.create({
+    data: { name: '1 этаж', siteId: bcSite.id, area: 400 }
+  });
+
+  const bcGroup1 = await prisma.roomGroup.create({
+    data: { name: 'Общие зоны', zoneId: bcZone1.id, area: 330 }
+  });
+
+  await prisma.room.createMany({
+    data: [
+      { name: 'Главный холл', objectId: obj2.id, roomGroupId: bcGroup1.id, area: 150, description: 'Входная группа с ресепшн' },
+      { name: 'Коридор', objectId: obj2.id, roomGroupId: bcGroup1.id, area: 80, description: 'Центральный коридор' },
+      { name: 'Санузлы (М)', objectId: obj2.id, roomGroupId: bcGroup1.id, area: 25, description: 'Мужской санузел' },
+      { name: 'Санузлы (Ж)', objectId: obj2.id, roomGroupId: bcGroup1.id, area: 25, description: 'Женский санузел' }
+    ]
+  });
+  totalRooms += 4;
+
+  // ЖК "Солнечный"
+  const zhkSite = await prisma.site.create({
+    data: { name: 'Корпус 1', objectId: obj3.id, managerId: obj3.managerId, area: 600 }
+  });
+
+  const zhkZone = await prisma.zone.create({
+    data: { name: 'Подъезд 1', siteId: zhkSite.id, area: 300 }
+  });
+
+  const zhkGroup = await prisma.roomGroup.create({
+    data: { name: 'Этаж 1-5', zoneId: zhkZone.id, area: 155 }
+  });
+
+  await prisma.room.createMany({
+    data: [
+      { name: 'Лестничная клетка 1-2 этаж', objectId: obj3.id, roomGroupId: zhkGroup.id, area: 40, description: 'Лестницы и площадки' },
+      { name: 'Лестничная клетка 3-4 этаж', objectId: obj3.id, roomGroupId: zhkGroup.id, area: 40, description: 'Лестницы и площадки' },
+      { name: 'Лестничная клетка 5 этаж', objectId: obj3.id, roomGroupId: zhkGroup.id, area: 20, description: 'Верхний этаж' },
+      { name: 'Лифтовой холл', objectId: obj3.id, roomGroupId: zhkGroup.id, area: 15, description: 'Зона лифтов' }
+    ]
+  });
+  totalRooms += 4;
+
   console.log(`✅ Создано помещений: ${totalRooms}\n`);
 
   // 6. Создаем техкарты
   console.log('📋 Создание техкарт...');
-  const techCardTemplates = [
-    { name: 'Влажная уборка', workType: 'Уборка', frequency: 'Ежедневно' },
-    { name: 'Мытье полов', workType: 'Уборка', frequency: 'Ежедневно' },
-    { name: 'Протирка поверхностей', workType: 'Уборка', frequency: 'Ежедневно' },
-    { name: 'Вынос мусора', workType: 'Уборка', frequency: 'Ежедневно' },
-    { name: 'Мытье окон', workType: 'Уборка', frequency: 'Еженедельно' },
-    { name: 'Генеральная уборка', workType: 'Уборка', frequency: 'Ежемесячно' }
-  ];
+  
+  // Техкарты для Производственного комплекса "Техмаш"
+  await prisma.techCard.createMany({
+    data: [
+      {
+        name: 'Влажная уборка производственных помещений',
+        workType: 'Ежедневная уборка',
+        frequency: 'Ежедневно',
+        objectId: obj1.id,
+        description: 'Влажная уборка полов, удаление производственной пыли с поверхностей',
+        notes: 'Использовать промышленный пылесос. Особое внимание к углам и труднодоступным местам.',
+        autoGenerate: true,
+        isActive: true,
+        frequencyDays: 1
+      },
+      {
+        name: 'Уборка административных помещений',
+        workType: 'Ежедневная уборка',
+        frequency: 'Ежедневно',
+        objectId: obj1.id,
+        description: 'Влажная уборка офисов, протирка мебели, вынос мусора',
+        notes: 'Уборка после окончания рабочего дня (после 18:00)',
+        autoGenerate: true,
+        isActive: true,
+        frequencyDays: 1
+      },
+      {
+        name: 'Генеральная уборка цехов',
+        workType: 'Генеральная уборка',
+        frequency: 'Ежемесячно',
+        objectId: obj1.id,
+        description: 'Комплексная уборка производственных помещений с мытьем стен, потолков, оборудования',
+        notes: 'Проводится в выходные дни. Требуется согласование с начальником производства.',
+        autoGenerate: true,
+        isActive: true,
+        frequencyDays: 30
+      }
+    ]
+  });
 
-  let totalTechCards = 0;
-  for (const obj of objects) {
-    const objRooms = await prisma.room.findMany({
-      where: { objectId: obj.id },
-      take: 2
-    });
+  // Техкарты для Бизнес-центра "Столичный"
+  await prisma.techCard.createMany({
+    data: [
+      {
+        name: 'Уборка офисных помещений',
+        workType: 'Ежедневная уборка',
+        frequency: 'Ежедневно',
+        objectId: obj2.id,
+        description: 'Влажная уборка полов, протирка столов, вынос мусора',
+        notes: 'Уборка после 19:00 или по согласованию с арендатором',
+        autoGenerate: true,
+        isActive: true,
+        frequencyDays: 1
+      },
+      {
+        name: 'Уборка общих зон (холлы, коридоры)',
+        workType: 'Ежедневная уборка',
+        frequency: 'Ежедневно',
+        objectId: obj2.id,
+        description: 'Влажная уборка полов, протирка перил, дверей, стеклянных поверхностей',
+        notes: 'Утренняя уборка до 9:00, поддерживающая - в течение дня',
+        autoGenerate: true,
+        isActive: true,
+        frequencyDays: 1
+      },
+      {
+        name: 'Мытье окон',
+        workType: 'Периодическая уборка',
+        frequency: 'Еженедельно',
+        objectId: obj2.id,
+        description: 'Мытье окон в офисах и общих зонах',
+        notes: 'По графику, согласованному с арендаторами',
+        autoGenerate: true,
+        isActive: true,
+        frequencyDays: 7
+      }
+    ]
+  });
 
-    for (const template of techCardTemplates) {
-      await prisma.techCard.create({
-        data: {
-          name: template.name,
-          workType: template.workType,
-          frequency: template.frequency,
-          objectId: obj.id,
-          roomId: objRooms[0]?.id,
-          description: `${template.name} - ${faker.lorem.sentence()}`,
-          autoGenerate: true,
-          isActive: true,
-          frequencyDays: template.frequency === 'Ежедневно' ? 1 : template.frequency === 'Еженедельно' ? 7 : 30
-        }
-      });
-      totalTechCards++;
-    }
-  }
+  // Техкарты для ЖК "Солнечный"
+  await prisma.techCard.createMany({
+    data: [
+      {
+        name: 'Уборка подъездов',
+        workType: 'Ежедневная уборка',
+        frequency: 'Ежедневно',
+        objectId: obj3.id,
+        description: 'Влажная уборка лестничных клеток, протирка перил, мытье полов',
+        notes: 'Утренняя уборка до 10:00',
+        autoGenerate: true,
+        isActive: true,
+        frequencyDays: 1
+      },
+      {
+        name: 'Уборка придомовой территории',
+        workType: 'Ежедневная уборка',
+        frequency: 'Ежедневно',
+        objectId: obj3.id,
+        description: 'Подметание дорожек, уборка мусора, очистка урн',
+        notes: 'Летом - полив газонов. Зимой - уборка снега.',
+        autoGenerate: true,
+        isActive: true,
+        frequencyDays: 1
+      },
+      {
+        name: 'Генеральная уборка подъездов',
+        workType: 'Генеральная уборка',
+        frequency: 'Еженедельно',
+        objectId: obj3.id,
+        description: 'Мытье стен, потолков, дверей, почтовых ящиков',
+        notes: 'Проводится по субботам',
+        autoGenerate: true,
+        isActive: true,
+        frequencyDays: 7
+      }
+    ]
+  });
+
+  // Техкарты для Торгового центра "Мега Плаза"
+  await prisma.techCard.createMany({
+    data: [
+      {
+        name: 'Уборка торговых залов',
+        workType: 'Ежедневная уборка',
+        frequency: 'Ежедневно',
+        objectId: obj4.id,
+        description: 'Влажная уборка полов, протирка витрин, вынос мусора',
+        notes: 'Поддерживающая уборка в течение дня, основная - после закрытия',
+        autoGenerate: true,
+        isActive: true,
+        frequencyDays: 1
+      },
+      {
+        name: 'Уборка санузлов',
+        workType: 'Ежедневная уборка',
+        frequency: 'Ежедневно',
+        objectId: obj4.id,
+        description: 'Дезинфекция сантехники, мытье полов, пополнение расходников',
+        notes: 'Проверка каждый час в часы работы ТЦ',
+        autoGenerate: true,
+        isActive: true,
+        frequencyDays: 1
+      }
+    ]
+  });
+
+  // Техкарты для Медицинского центра "Здоровье+"
+  await prisma.techCard.createMany({
+    data: [
+      {
+        name: 'Уборка кабинетов врачей',
+        workType: 'Ежедневная уборка',
+        frequency: 'Ежедневно',
+        objectId: obj5.id,
+        description: 'Влажная уборка с дезинфекцией всех поверхностей',
+        notes: 'Использовать только медицинские дезинфицирующие средства. Уборка после каждого приема.',
+        autoGenerate: true,
+        isActive: true,
+        frequencyDays: 1
+      },
+      {
+        name: 'Дезинфекция процедурных кабинетов',
+        workType: 'Ежедневная уборка',
+        frequency: 'Ежедневно',
+        objectId: obj5.id,
+        description: 'Тщательная дезинфекция всех поверхностей, оборудования',
+        notes: 'Строгое соблюдение санитарных норм. Использовать СИЗ.',
+        autoGenerate: true,
+        isActive: true,
+        frequencyDays: 1
+      },
+      {
+        name: 'Генеральная уборка с дезинфекцией',
+        workType: 'Генеральная уборка',
+        frequency: 'Еженедельно',
+        objectId: obj5.id,
+        description: 'Комплексная уборка с обработкой всех поверхностей, включая стены и потолки',
+        notes: 'Проводится в выходные дни. Обязательна кварцевая обработка помещений.',
+        autoGenerate: true,
+        isActive: true,
+        frequencyDays: 7
+      }
+    ]
+  });
+
+  const totalTechCards = 3 + 3 + 3 + 2 + 3; // 14 техкарт
   console.log(`✅ Создано техкарт: ${totalTechCards}\n`);
 
   // 7. Создаем лимиты по категориям
@@ -327,18 +606,36 @@ async function main() {
 
   // 8. Создаем расходы
   console.log('💸 Создание расходов...');
+  
+  const expenseDescriptions = [
+    { desc: 'Моющее средство "Мистер Пропер" 5л', category: 0, amount: 850 },
+    { desc: 'Дезинфицирующее средство "Domestos" 3л', category: 0, amount: 650 },
+    { desc: 'Мешки для мусора 120л (рулон 20шт)', category: 1, amount: 420 },
+    { desc: 'Швабра с отжимом + ведро', category: 1, amount: 1200 },
+    { desc: 'Микрофибра для уборки (упаковка 10шт)', category: 1, amount: 890 },
+    { desc: 'Перчатки резиновые (50 пар)', category: 1, amount: 750 },
+    { desc: 'Средство для мытья окон "Clin" 2л', category: 0, amount: 380 },
+    { desc: 'Освежитель воздуха (6шт)', category: 0, amount: 540 },
+    { desc: 'Туалетная бумага (упаковка 24 рулона)', category: 1, amount: 680 },
+    { desc: 'Жидкое мыло для рук (5л)', category: 0, amount: 720 }
+  ];
+
   let totalExpenses = 0;
+  const lastMonth = currentMonth === 1 ? 12 : currentMonth - 1;
+  const lastMonthYear = currentMonth === 1 ? currentYear - 1 : currentYear;
+
   for (const obj of objects) {
     // Расходы за текущий месяц
-    for (let i = 0; i < 10; i++) {
+    for (let i = 0; i < 6; i++) {
+      const expense = expenseDescriptions[i % expenseDescriptions.length];
       await prisma.inventoryExpense.create({
         data: {
-          amount: faker.number.int({ min: 500, max: 5000 }),
-          description: faker.commerce.productDescription(),
+          amount: expense.amount,
+          description: expense.desc,
           month: currentMonth,
           year: currentYear,
           objectId: obj.id,
-          categoryId: categories[Math.floor(Math.random() * categories.length)].id,
+          categoryId: categories[expense.category].id,
           recordedById: obj.managerId || admin.id
         }
       });
@@ -346,18 +643,16 @@ async function main() {
     }
 
     // Расходы за прошлый месяц
-    const lastMonth = currentMonth === 1 ? 12 : currentMonth - 1;
-    const lastMonthYear = currentMonth === 1 ? currentYear - 1 : currentYear;
-    
-    for (let i = 0; i < 8; i++) {
+    for (let i = 0; i < 5; i++) {
+      const expense = expenseDescriptions[(i + 5) % expenseDescriptions.length];
       await prisma.inventoryExpense.create({
         data: {
-          amount: faker.number.int({ min: 500, max: 5000 }),
-          description: faker.commerce.productDescription(),
+          amount: expense.amount,
+          description: expense.desc,
           month: lastMonth,
           year: lastMonthYear,
           objectId: obj.id,
-          categoryId: categories[Math.floor(Math.random() * categories.length)].id,
+          categoryId: categories[expense.category].id,
           recordedById: obj.managerId || admin.id
         }
       });
@@ -395,10 +690,16 @@ async function main() {
       totalChecklists++;
 
       // Создаем задачи для чеклиста
+      const taskDescriptions = [
+        'Протереть пыль с поверхностей',
+        'Вымыть полы влажной шваброй',
+        'Вынести мусорные корзины'
+      ];
+      
       for (let i = 0; i < 3; i++) {
         await prisma.task.create({
           data: {
-            description: faker.lorem.sentence(),
+            description: taskDescriptions[i],
             status: day < 5 ? 'COMPLETED' : 'NEW',
             checklistId: checklist.id,
             roomId: objRooms[0]?.id,
@@ -452,24 +753,35 @@ async function main() {
 
   // 11. Создаем дополнительные задачи
   console.log('📝 Создание дополнительных задач...');
+  
+  const additionalTasksData = [
+    { title: 'Заменить лампочку в коридоре', content: 'В коридоре на 2 этаже перегорела лампочка. Необходимо заменить.' },
+    { title: 'Устранить протечку в санузле', content: 'В мужском санузле подтекает кран. Требуется вызов сантехника или временный ремонт.' },
+    { title: 'Дополнительная уборка после мероприятия', content: 'После корпоративного мероприятия в переговорной требуется дополнительная уборка.' },
+    { title: 'Закупить дополнительные расходники', content: 'Закончились мешки для мусора и туалетная бумага. Срочно нужна закупка.' },
+    { title: 'Проверить работу вентиляции', content: 'Жалобы на плохую вентиляцию в офисе 201. Проверить систему.' },
+    { title: 'Убрать снег у входа', content: 'После снегопада необходимо расчистить входную группу и дорожки.' }
+  ];
+
   let totalAdditionalTasks = 0;
   
   for (const obj of objects.slice(0, 3)) {
-    for (let i = 0; i < 3; i++) {
+    for (let i = 0; i < 2; i++) {
+      const taskData = additionalTasksData[(totalAdditionalTasks + i) % additionalTasksData.length];
       await prisma.additionalTask.create({
         data: {
-          title: faker.lorem.words(3),
-          content: faker.lorem.paragraph(),
+          title: taskData.title,
+          content: taskData.content,
           source: 'Telegram',
           sourceDetails: {
-            chatId: faker.number.int({ min: 100000, max: 999999 }),
-            messageId: faker.number.int({ min: 1, max: 1000 })
+            chatId: 123456789,
+            messageId: 100 + totalAdditionalTasks + i
           },
-          status: i === 0 ? 'NEW' : i === 1 ? 'IN_PROGRESS' : 'COMPLETED',
+          status: i === 0 ? 'NEW' : 'IN_PROGRESS',
           objectId: obj.id,
           assignedToId: obj.managerId || managers[0].id,
-          completedById: i === 2 ? obj.managerId : null,
-          completedAt: i === 2 ? new Date() : null,
+          completedById: null,
+          completedAt: null,
           receivedAt: new Date()
         }
       });
@@ -479,11 +791,11 @@ async function main() {
   console.log(`✅ Создано дополнительных задач: ${totalAdditionalTasks}\n`);
 
   // Итоговая статистика
-  console.log('═══════════════════════════════════════');
-  console.log('✅ ТЕСТОВЫЕ ДАННЫЕ УСПЕШНО СОЗДАНЫ!');
+  console.log('\n═══════════════════════════════════════');
+  console.log('✅ РЕАЛИСТИЧНЫЕ ДАННЫЕ УСПЕШНО СОЗДАНЫ!');
   console.log('═══════════════════════════════════════');
   console.log(`\n📊 СТАТИСТИКА:`);
-  console.log(`   👥 Пользователей: ${1 + 1 + 1 + managers.length}`);
+  console.log(`   👥 Пользователей: ${3 + managers.length}`);
   console.log(`   📊 Категорий расходов: ${categories.length}`);
   console.log(`   🏢 Объектов уборки: ${objects.length}`);
   console.log(`   🏗️ Помещений: ${totalRooms}`);
@@ -498,7 +810,13 @@ async function main() {
   console.log(`   Администратор: admin@example.com / password123`);
   console.log(`   Заместитель: deputy@example.com / password123`);
   console.log(`   Бухгалтер: accountant@example.com / password123`);
-  console.log(`   Менеджеры: manager1-4@example.com / password123`);
+  console.log(`   Менеджеры: manager1-5@example.com / password123`);
+  console.log(`\n🏢 ОБЪЕКТЫ:`);
+  console.log(`   1. Производственный комплекс "Техмаш" (2 менеджера)`);
+  console.log(`   2. Бизнес-центр "Столичный"`);
+  console.log(`   3. ЖК "Солнечный"`);
+  console.log(`   4. Торговый центр "Мега Плаза"`);
+  console.log(`   5. Медицинский центр "Здоровье+"`);
   console.log(`\n🎉 Готово! Можете запускать проект: npm run dev`);
   console.log('═══════════════════════════════════════\n');
 }
