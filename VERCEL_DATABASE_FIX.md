@@ -33,8 +33,6 @@ DATABASE_URL="postgresql://postgres.XXXXX:PASSWORD@aws-0-REGION.pooler.supabase.
 postgresql://postgres.lmhvwogsjqefxiwbsdwn:ВАШ_ПАРОЛЬ@aws-0-eu-central-1.pooler.supabase.com:6543/postgres?pgbouncer=true
 ```
 
-#### Правильный URL:
-#### postgresql://postgres.lmhvwogsjqefxiwbsdwn:mxK1vH91xsQ7HmI7@aws-0-eu-central-1.pooler.supabase.com:6543/postgres?pgbouncer=true
 
 ### 3. НЕ ИСПОЛЬЗУЙТЕ эти параметры:
 ❌ `connection_limit=1` — создает проблемы с prepared statements  
@@ -80,9 +78,20 @@ DATABASE_URL="postgresql://postgres.XXXXX:PASSWORD@aws-0-REGION.pooler.supabase.
 
 ## Что было исправлено в коде
 
-1. ✅ `prisma/schema.prisma` — добавлен `directUrl` для поддержки pgbouncer
+1. ✅ `prisma/schema.prisma` — добавлен `previewFeatures = ["driverAdapters"]` для совместимости с Supabase Pooler
 2. ✅ `src/lib/prisma.ts` — оптимизировано логирование для production
 3. ✅ Все API routes уже используют единый `prisma` клиент из `@/lib/prisma`
+
+## Важно: Переменные окружения для Production
+
+В Vercel должны быть установлены **production** URL, а не localhost:
+
+```env
+NEXTAUTH_URL="https://cleaning-control.vercel.app"
+NEXT_PUBLIC_BASE_URL="https://cleaning-control.vercel.app"
+```
+
+**НЕ используйте** `http://localhost:3000` или `http://localhost:3001` в production!
 
 ## Следующие шаги
 
