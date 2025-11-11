@@ -71,7 +71,6 @@ export default function LoginPage() {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                autoComplete="email"
                 required
               />
             </div>
@@ -83,7 +82,6 @@ export default function LoginPage() {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                autoComplete="current-password"
                 required
               />
             </div>
@@ -95,79 +93,6 @@ export default function LoginPage() {
             <Button type="submit" className="w-full" disabled={loading}>
               {loading ? 'Вход...' : 'Войти'}
             </Button>
-
-            {/* Кнопки быстрого входа для демонстрации */}
-            <div className="mt-6 pt-6 border-t border-gray-200">
-              <p className="text-sm text-gray-600 mb-3 text-center">Быстрый вход для демонстрации:</p>
-              
-              {/* Администрация */}
-              <div className="space-y-2 mb-4">
-                <p className="text-xs font-semibold text-gray-700 uppercase">Администрация</p>
-                <div className="grid grid-cols-2 gap-2">
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    onClick={() => quickLogin('admin@example.com', 'password123')}
-                    className="text-xs"
-                  >
-                    👤 Администратор
-                  </Button>
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    onClick={() => quickLogin('deputy@example.com', 'password123')}
-                    className="text-xs"
-                  >
-                    👥 Заместитель
-                  </Button>
-                </div>
-              </div>
-
-              {/* Менеджеры */}
-              <div className="space-y-2">
-                <p className="text-xs font-semibold text-gray-700 uppercase">Менеджеры</p>
-                <div className="grid grid-cols-2 gap-2">
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    onClick={() => quickLogin('manager1@example.com', 'password123')}
-                    className="text-xs"
-                  >
-                    🏢 Менеджер 1
-                  </Button>
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    onClick={() => quickLogin('manager2@example.com', 'password123')}
-                    className="text-xs"
-                  >
-                    🏢 Менеджер 2
-                  </Button>
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    onClick={() => quickLogin('manager3@example.com', 'password123')}
-                    className="text-xs"
-                  >
-                    🏢 Менеджер 3
-                  </Button>
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    onClick={() => quickLogin('manager4@example.com', 'password123')}
-                    className="text-xs"
-                  >
-                    🏢 Менеджер 4
-                  </Button>
-                </div>
-              </div>
-            </div>
           </form>
         </CardContent>
       </Card>

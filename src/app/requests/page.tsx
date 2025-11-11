@@ -3,10 +3,6 @@ import { prisma } from '@/lib/prisma';
 import AppLayout from '@/components/AppLayout';
 import RequestsClientPage from './RequestsClientPage';
 
-// Отключаем статическую генерацию для этой страницы
-export const dynamic = 'force-dynamic';
-export const revalidate = 0;
-
 async function getRequests() {
   const requests = await prisma.request.findMany({
     include: {

@@ -3,10 +3,6 @@ import { prisma } from '@/lib/prisma';
 import AppLayout from '@/components/AppLayout';
 import AuditClientPage from './AuditClientPage';
 
-// Отключаем статическую генерацию для этой страницы
-export const dynamic = 'force-dynamic';
-export const revalidate = 0;
-
 async function getUsers() {
   try {
     const users = await prisma.user.findMany({

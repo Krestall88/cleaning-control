@@ -30,7 +30,7 @@ async function getUserFromToken(request: NextRequest) {
 // GET /api/expenses/stats/[objectId] - Статистика по категориям
 export async function GET(
   request: NextRequest,
-  { params }: { params: { objectId: string } }
+  { params }: { params: Promise<{ objectId: string }> }
 ) {
   try {
     const user = await getUserFromToken(request);
@@ -39,7 +39,7 @@ export async function GET(
       return NextResponse.json({ message: 'Unauthorized' }, { status: 401 });
     }
 
-    const { objectId } = params;
+    const { objectId } = await params;
     const { searchParams } = new URL(request.url);
     const month = searchParams.get('month');
     const year = searchParams.get('year');
@@ -116,7 +116,10 @@ export async function GET(
       let totalLimit = new Decimal(0);
       let hasLimit = false;
       const daysInMonth = new Date(currentYear, currentMonth, 0).getDate();
-      const currentDate = new Date(currentYear, currentMonth - 1, 1);
+      
+      // Для проверки периодов используем первый и последний день месяца
+      const monthStart = new Date(currentYear, currentMonth - 1, 1);
+      const monthEnd = new Date(currentYear, currentMonth, 0, 23, 59, 59);
 
       for (const limit of categoryLimits) {
         if (limit.periodType === 'MONTHLY') {
@@ -129,18 +132,26 @@ export async function GET(
           totalLimit = totalLimit.add(new Decimal(limit.amount).times(daysInMonth));
           hasLimit = true;
         } else if (limit.periodType === 'SEMI_ANNUAL') {
-          // Полугодовой лимит / 6 месяцев (если период активен)
-          if (limit.startDate && limit.endDate && 
-              limit.startDate <= currentDate && limit.endDate >= currentDate) {
-            totalLimit = totalLimit.add(new Decimal(limit.amount).dividedBy(6));
-            hasLimit = true;
+          // Полугодовой лимит / 6 месяцев (если период пересекается с текущим месяцем)
+          if (limit.startDate && limit.endDate) {
+            const limitStart = new Date(limit.startDate);
+            const limitEnd = new Date(limit.endDate);
+            // Проверяем пересечение периодов
+            if (limitStart <= monthEnd && limitEnd >= monthStart) {
+              totalLimit = totalLimit.add(new Decimal(limit.amount).dividedBy(6));
+              hasLimit = true;
+            }
           }
         } else if (limit.periodType === 'ANNUAL') {
-          // Годовой лимит / 12 месяцев (если период активен)
-          if (limit.startDate && limit.endDate && 
-              limit.startDate <= currentDate && limit.endDate >= currentDate) {
-            totalLimit = totalLimit.add(new Decimal(limit.amount).dividedBy(12));
-            hasLimit = true;
+          // Годовой лимит / 12 месяцев (если период пересекается с текущим месяцем)
+          if (limit.startDate && limit.endDate) {
+            const limitStart = new Date(limit.startDate);
+            const limitEnd = new Date(limit.endDate);
+            // Проверяем пересечение периодов
+            if (limitStart <= monthEnd && limitEnd >= monthStart) {
+              totalLimit = totalLimit.add(new Decimal(limit.amount).dividedBy(12));
+              hasLimit = true;
+            }
           }
         }
       }
@@ -161,7 +172,17 @@ export async function GET(
         remaining: remaining ? remaining.toNumber() : null,
         percentage: hasLimit ? Math.min(percentage, 100) : 0,
         hasLimit,
-        limitsCount: categoryLimits.length
+        limitsCount: categoryLimits.length,
+        limits: categoryLimits.map(l => ({
+          id: l.id,
+          amount: l.amount.toNumber(),
+          periodType: l.periodType,
+          month: l.month,
+          year: l.year,
+          startDate: l.startDate,
+          endDate: l.endDate,
+          isRecurring: l.isRecurring
+        }))
       };
     });
 
@@ -179,7 +200,8 @@ export async function GET(
         remaining: null,
         percentage: 0,
         hasLimit: false,
-        limitsCount: 0
+        limitsCount: 0,
+        limits: []
       });
     }
 

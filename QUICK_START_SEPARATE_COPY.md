@@ -10,11 +10,12 @@ xcopy toplevel toplevel-presentation /E /I /H
 ```
 
 ### 2️⃣ ОЧИСТИТЬ КОПИЮ
-```bash
+```powershell
 cd toplevel-presentation
-rmdir /s /q node_modules
-del .env.local
-rmdir /s /q .next
+Remove-Item -Recurse -Force node_modules
+Remove-Item .env -ErrorAction SilentlyContinue
+Remove-Item .env.local -ErrorAction SilentlyContinue
+Remove-Item -Recurse -Force .next -ErrorAction SilentlyContinue
 ```
 
 ### 3️⃣ СОЗДАТЬ ПРОЕКТ В SUPABASE

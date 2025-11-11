@@ -19,7 +19,8 @@ import {
   Plus,
   BarChart3,
   Users,
-  Settings
+  Settings,
+  Search
 } from 'lucide-react';
 import ExpenseChart from './ExpenseChart';
 
@@ -132,7 +133,7 @@ function EditLimitModal({ isOpen, onClose, balance, onSave }: EditLimitModalProp
 
   const handleCreateCategory = async () => {
     if (!newCategoryName.trim()) {
-      alert('Введите название категории');
+      console.error('Введите название категории');
       return;
     }
 
@@ -157,11 +158,10 @@ function EditLimitModal({ isOpen, onClose, balance, onSave }: EditLimitModalProp
         setNewCategoryDescription('');
       } else {
         const data = await response.json();
-        alert(data.message || 'Ошибка создания категории');
+        console.error('Ошибка создания категории:', data.message);
       }
     } catch (error) {
       console.error('Error creating category:', error);
-      alert('Ошибка создания категории');
     } finally {
       setIsCreatingCategory(false);
     }
@@ -169,11 +169,11 @@ function EditLimitModal({ isOpen, onClose, balance, onSave }: EditLimitModalProp
 
   const handleSave = () => {
     if (!selectedCategory) {
-      alert('Выберите категорию расходов');
+      console.error('Выберите категорию расходов');
       return;
     }
     if (!amount || parseFloat(amount) <= 0) {
-      alert('Введите корректную сумму');
+      console.error('Введите корректную сумму');
       return;
     }
 
@@ -196,12 +196,19 @@ function EditLimitModal({ isOpen, onClose, balance, onSave }: EditLimitModalProp
 
     // Для SEMI_ANNUAL и ANNUAL - добавляем даты
     if (periodType === 'SEMI_ANNUAL' || periodType === 'ANNUAL') {
-      if (!startDate || !endDate) {
-        alert('Укажите даты начала и окончания периода');
-        return;
+      // Если дата не выбрана, используем текущую
+      const start = startDate ? new Date(startDate) : new Date();
+      
+      // Автоматически рассчитываем конечную дату
+      const end = new Date(start);
+      if (periodType === 'SEMI_ANNUAL') {
+        end.setMonth(end.getMonth() + 6);
+      } else if (periodType === 'ANNUAL') {
+        end.setFullYear(end.getFullYear() + 1);
       }
-      saveData.startDate = new Date(startDate);
-      saveData.endDate = new Date(endDate);
+      
+      saveData.startDate = start;
+      saveData.endDate = end;
     }
 
     onSave(saveData);
@@ -368,25 +375,21 @@ function EditLimitModal({ isOpen, onClose, balance, onSave }: EditLimitModalProp
             </>
           )}
 
-          {/* Для SEMI_ANNUAL и ANNUAL - показываем даты */}
+          {/* Для SEMI_ANNUAL и ANNUAL - показываем дату начала */}
           {(periodType === 'SEMI_ANNUAL' || periodType === 'ANNUAL') && (
-            <div className="grid grid-cols-2 gap-2">
-              <div>
-                <label className="text-sm font-medium">Дата начала *</label>
-                <Input
-                  type="date"
-                  value={startDate}
-                  onChange={(e) => setStartDate(e.target.value)}
-                />
-              </div>
-              <div>
-                <label className="text-sm font-medium">Дата окончания *</label>
-                <Input
-                  type="date"
-                  value={endDate}
-                  onChange={(e) => setEndDate(e.target.value)}
-                />
-              </div>
+            <div>
+              <label className="text-sm font-medium">Дата начала</label>
+              <Input
+                type="date"
+                value={startDate}
+                onChange={(e) => setStartDate(e.target.value)}
+                placeholder="Если не указана, используется текущая дата"
+              />
+              <p className="text-xs text-gray-500 mt-1">
+                {periodType === 'SEMI_ANNUAL' 
+                  ? 'Конечная дата будет автоматически установлена через 6 месяцев'
+                  : 'Конечная дата будет автоматически установлена через 1 год'}
+              </p>
             </div>
           )}
 
@@ -442,7 +445,7 @@ function AddExpenseModal({ isOpen, onClose, balance, onSave }: AddExpenseModalPr
 
   const handleSave = () => {
     if (!amount) {
-      alert('Пожалуйста, укажите сумму расхода');
+      console.error('Пожалуйста, укажите сумму расхода');
       return;
     }
     
@@ -522,6 +525,10 @@ function ExpenseChartModal({ isOpen, onClose, balance }: ExpenseChartModalProps)
   const [activeTab, setActiveTab] = useState<'general' | 'categories'>('general');
   const [categoryStats, setCategoryStats] = useState<any>(null);
   const [loading, setLoading] = useState(false);
+  const [editingLimit, setEditingLimit] = useState<{limitId: string, categoryName: string, currentAmount: number} | null>(null);
+  const [newLimitAmount, setNewLimitAmount] = useState('');
+  const [editingSpent, setEditingSpent] = useState<{categoryId: string, categoryName: string, currentSpent: number} | null>(null);
+  const [newSpentAmount, setNewSpentAmount] = useState('');
 
   useEffect(() => {
     if (isOpen && balance && activeTab === 'categories') {
@@ -546,6 +553,90 @@ function ExpenseChartModal({ isOpen, onClose, balance }: ExpenseChartModalProps)
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleEditLimit = (limitId: string, categoryName: string, currentAmount: number) => {
+    setEditingLimit({ limitId, categoryName, currentAmount });
+    setNewLimitAmount(currentAmount.toString());
+  };
+
+  const handleSaveLimit = async () => {
+    if (!editingLimit || !newLimitAmount) return;
+
+    try {
+      const response = await fetch(`/api/expense-limits/${editingLimit.limitId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ amount: parseFloat(newLimitAmount) })
+      });
+
+      if (response.ok) {
+        setEditingLimit(null);
+        setNewLimitAmount('');
+        await loadCategoryStats(); // Перезагружаем данные
+      } else {
+        const error = await response.json();
+        console.error('Ошибка при сохранении лимита:', error.message);
+      }
+    } catch (error) {
+      console.error('Error saving limit:', error);
+    }
+  };
+
+  const handleCancelEdit = () => {
+    setEditingLimit(null);
+    setNewLimitAmount('');
+  };
+
+  const handleEditSpent = (categoryId: string, categoryName: string, currentSpent: number) => {
+    setEditingSpent({ categoryId, categoryName, currentSpent });
+    setNewSpentAmount(currentSpent.toString());
+  };
+
+  const handleSaveSpent = async () => {
+    if (!editingSpent || !newSpentAmount || !balance) return;
+
+    const newAmount = parseFloat(newSpentAmount);
+    const currentAmount = editingSpent.currentSpent;
+    const difference = newAmount - currentAmount;
+
+    if (difference === 0) {
+      setEditingSpent(null);
+      setNewSpentAmount('');
+      return;
+    }
+
+    try {
+      // Создаем корректирующий расход
+      const response = await fetch('/api/inventory/expenses', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          objectId: balance.objectId,
+          amount: difference,
+          description: `Корректировка суммы расходов по категории "${editingSpent.categoryName}". Было: ${currentAmount.toLocaleString('ru-RU')} ₽, стало: ${newAmount.toLocaleString('ru-RU')} ₽`,
+          month: balance.month,
+          year: balance.year,
+          categoryId: editingSpent.categoryId
+        })
+      });
+
+      if (response.ok) {
+        setEditingSpent(null);
+        setNewSpentAmount('');
+        await loadCategoryStats(); // Обновляем статистику
+      } else {
+        const error = await response.json();
+        console.error('Ошибка при корректировке суммы:', error.error);
+      }
+    } catch (error) {
+      console.error('Error saving spent amount:', error);
+    }
+  };
+
+  const handleCancelSpentEdit = () => {
+    setEditingSpent(null);
+    setNewSpentAmount('');
   };
 
   return (
@@ -643,17 +734,78 @@ function ExpenseChartModal({ isOpen, onClose, balance }: ExpenseChartModalProps)
                           <h3 className="font-semibold text-gray-900 mb-3">{cat.category.name}</h3>
                           
                           <div className="space-y-2">
-                            <div className="flex justify-between text-sm">
+                            <div className="flex justify-between items-center text-sm">
                               <span className="text-gray-600">Потрачено:</span>
-                              <span className="font-medium">{cat.spent.toLocaleString('ru-RU')} ₽</span>
+                              <div className="flex items-center gap-2">
+                                <span className="font-medium">{cat.spent.toLocaleString('ru-RU')} ₽</span>
+                                <Button
+                                  size="sm"
+                                  variant="ghost"
+                                  className="h-6 w-6 p-0"
+                                  onClick={() => handleEditSpent(cat.category.id, cat.category.name, cat.spent)}
+                                >
+                                  <Edit className="h-3 w-3" />
+                                </Button>
+                              </div>
                             </div>
                             
                             {cat.hasLimit && (
                               <>
-                                <div className="flex justify-between text-sm">
-                                  <span className="text-gray-600">Лимит:</span>
-                                  <span className="font-medium">{cat.limit?.toLocaleString('ru-RU')} ₽</span>
-                                </div>
+                                {/* Тип периода и лимит */}
+                                {cat.limits && cat.limits.length > 0 && (
+                                  <>
+                                    {/* Для годовых и полугодовых - показываем общую сумму */}
+                                    {(cat.limits[0].periodType === 'ANNUAL' || cat.limits[0].periodType === 'SEMI_ANNUAL') && (
+                                      <div className="bg-blue-50 px-3 py-2 rounded-lg border border-blue-200">
+                                        <div className="flex justify-between items-center text-xs text-blue-700 mb-1">
+                                          <span className="font-medium">
+                                            {cat.limits[0].periodType === 'ANNUAL' ? '📅 Годовой лимит' : '📅 Полугодовой лимит'}
+                                          </span>
+                                          <Button
+                                            size="sm"
+                                            variant="ghost"
+                                            className="h-5 w-5 p-0 hover:bg-blue-100"
+                                            onClick={() => handleEditLimit(cat.limits[0].id, cat.category.name, cat.limits[0].amount)}
+                                          >
+                                            <Edit className="h-3 w-3 text-blue-700" />
+                                          </Button>
+                                        </div>
+                                        <div className="flex justify-between items-baseline">
+                                          <span className="text-xs text-blue-600">Общая сумма:</span>
+                                          <span className="text-sm font-bold text-blue-900">
+                                            {cat.limits[0].amount.toLocaleString('ru-RU')} ₽
+                                          </span>
+                                        </div>
+                                        <div className="flex justify-between items-baseline mt-1">
+                                          <span className="text-xs text-blue-600">На месяц:</span>
+                                          <span className="text-sm font-medium text-blue-800">
+                                            {cat.limit?.toLocaleString('ru-RU')} ₽
+                                          </span>
+                                        </div>
+                                      </div>
+                                    )}
+                                    
+                                    {/* Для месячных и дневных - обычное отображение */}
+                                    {(cat.limits[0].periodType === 'MONTHLY' || cat.limits[0].periodType === 'DAILY') && (
+                                      <div className="flex justify-between items-center text-sm">
+                                        <span className="text-gray-600">
+                                          {cat.limits[0].periodType === 'MONTHLY' ? '📅 Лимит (месяц):' : '📅 Лимит (день × ' + new Date(balance?.year || new Date().getFullYear(), balance?.month || new Date().getMonth() + 1, 0).getDate() + '):'}
+                                        </span>
+                                        <div className="flex items-center gap-2">
+                                          <span className="font-medium">{cat.limit?.toLocaleString('ru-RU')} ₽</span>
+                                          <Button
+                                            size="sm"
+                                            variant="ghost"
+                                            className="h-6 w-6 p-0"
+                                            onClick={() => handleEditLimit(cat.limits[0].id, cat.category.name, cat.limits[0].amount)}
+                                          >
+                                            <Edit className="h-3 w-3" />
+                                          </Button>
+                                        </div>
+                                      </div>
+                                    )}
+                                  </>
+                                )}
                                 
                                 <div className="flex justify-between text-sm">
                                   <span className="text-gray-600">Остаток:</span>
@@ -721,8 +873,91 @@ function ExpenseChartModal({ isOpen, onClose, balance }: ExpenseChartModalProps)
               )}
             </div>
           )}
+
         </div>
       </DialogContent>
+
+      {/* Модальное окно редактирования лимита */}
+      {editingLimit && (
+        <Dialog open={!!editingLimit} onOpenChange={() => handleCancelEdit()}>
+          <DialogContent className="sm:max-w-md">
+            <DialogHeader>
+              <DialogTitle>Редактировать лимит</DialogTitle>
+            </DialogHeader>
+            <div className="space-y-4">
+              <div>
+                <label className="text-sm font-medium text-gray-700">Категория</label>
+                <div className="mt-1 text-sm text-gray-900">{editingLimit.categoryName}</div>
+              </div>
+              <div>
+                <label className="text-sm font-medium text-gray-700">Текущий лимит</label>
+                <div className="mt-1 text-sm text-gray-500">
+                  {editingLimit.currentAmount.toLocaleString('ru-RU')} ₽
+                </div>
+              </div>
+              <div>
+                <label className="text-sm font-medium text-gray-700">Новый лимит (₽)</label>
+                <Input
+                  type="number"
+                  value={newLimitAmount}
+                  onChange={(e) => setNewLimitAmount(e.target.value)}
+                  placeholder="Введите новый лимит"
+                  className="mt-1"
+                />
+              </div>
+              <div className="flex justify-end gap-2">
+                <Button variant="outline" onClick={handleCancelEdit}>
+                  Отмена
+                </Button>
+                <Button onClick={handleSaveLimit} disabled={!newLimitAmount}>
+                  Сохранить
+                </Button>
+              </div>
+            </div>
+          </DialogContent>
+        </Dialog>
+      )}
+
+      {/* Модальное окно редактирования суммы расходов */}
+      {editingSpent && (
+        <Dialog open={!!editingSpent} onOpenChange={() => handleCancelSpentEdit()}>
+          <DialogContent className="sm:max-w-md">
+            <DialogHeader>
+              <DialogTitle>Редактировать сумму расходов</DialogTitle>
+            </DialogHeader>
+            <div className="space-y-4">
+              <div>
+                <label className="text-sm font-medium text-gray-700">Категория</label>
+                <div className="mt-1 text-sm text-gray-900">{editingSpent.categoryName}</div>
+              </div>
+              <div>
+                <label className="text-sm font-medium text-gray-700">Текущая сумма</label>
+                <div className="mt-1 text-sm text-gray-500">
+                  {editingSpent.currentSpent.toLocaleString('ru-RU')} ₽
+                </div>
+              </div>
+              <div>
+                <label className="text-sm font-medium text-gray-700">Новая сумма (₽)</label>
+                <Input
+                  type="number"
+                  value={newSpentAmount}
+                  onChange={(e) => setNewSpentAmount(e.target.value)}
+                  placeholder="Введите новую сумму"
+                  className="mt-1"
+                />
+              </div>
+              <div className="flex justify-end gap-2">
+                <Button variant="outline" onClick={handleCancelSpentEdit}>
+                  Отмена
+                </Button>
+                <Button onClick={handleSaveSpent} disabled={!newSpentAmount}>
+                  Сохранить
+                </Button>
+              </div>
+            </div>
+          </DialogContent>
+        </Dialog>
+      )}
     </Dialog>
   );
 }
@@ -760,7 +995,7 @@ function BulkLimitModal({ isOpen, onClose, balances, onSave }: BulkLimitModalPro
 
   const handleSave = () => {
     if (!categoryId || !amount || selectedObjects.length === 0) {
-      alert('Заполните все обязательные поля: категория, сумма и выберите объекты');
+      console.error('Заполните все обязательные поля: категория, сумма и выберите объекты');
       return;
     }
 
@@ -776,12 +1011,19 @@ function BulkLimitModal({ isOpen, onClose, balances, onSave }: BulkLimitModalPro
       data.year = year;
       data.isRecurring = isRecurring;
     } else if (periodType === 'SEMI_ANNUAL' || periodType === 'ANNUAL') {
-      if (!startDate || !endDate) {
-        alert('Укажите даты начала и окончания для выбранного типа периода');
-        return;
+      // Если дата не выбрана, используем текущую
+      const start = startDate ? new Date(startDate) : new Date();
+      
+      // Автоматически рассчитываем конечную дату
+      const end = new Date(start);
+      if (periodType === 'SEMI_ANNUAL') {
+        end.setMonth(end.getMonth() + 6);
+      } else if (periodType === 'ANNUAL') {
+        end.setFullYear(end.getFullYear() + 1);
       }
-      data.startDate = new Date(startDate);
-      data.endDate = new Date(endDate);
+      
+      data.startDate = start;
+      data.endDate = end;
     }
 
     onSave(data);
@@ -893,23 +1135,19 @@ function BulkLimitModal({ isOpen, onClose, balances, onSave }: BulkLimitModalPro
 
           {/* Поля для SEMI_ANNUAL и ANNUAL */}
           {(periodType === 'SEMI_ANNUAL' || periodType === 'ANNUAL') && (
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <label className="text-sm font-medium">Дата начала *</label>
-                <Input
-                  type="date"
-                  value={startDate}
-                  onChange={(e) => setStartDate(e.target.value)}
-                />
-              </div>
-              <div>
-                <label className="text-sm font-medium">Дата окончания *</label>
-                <Input
-                  type="date"
-                  value={endDate}
-                  onChange={(e) => setEndDate(e.target.value)}
-                />
-              </div>
+            <div>
+              <label className="text-sm font-medium">Дата начала</label>
+              <Input
+                type="date"
+                value={startDate}
+                onChange={(e) => setStartDate(e.target.value)}
+                placeholder="Если не указана, используется текущая дата"
+              />
+              <p className="text-xs text-gray-500 mt-1">
+                {periodType === 'SEMI_ANNUAL' 
+                  ? 'Конечная дата будет автоматически установлена через 6 месяцев'
+                  : 'Конечная дата будет автоматически установлена через 1 год'}
+              </p>
             </div>
           )}
 
@@ -953,6 +1191,7 @@ export default function InventoryFinancialReport({ objectId }: InventoryFinancia
   const [loading, setLoading] = useState(true);
   const [selectedMonth, setSelectedMonth] = useState(new Date().getMonth() + 1);
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
+  const [searchQuery, setSearchQuery] = useState('');
   
   // Модальные окна
   const [editLimitModal, setEditLimitModal] = useState<{isOpen: boolean, balance: InventoryBalance | null}>({
@@ -1021,6 +1260,8 @@ export default function InventoryFinancialReport({ objectId }: InventoryFinancia
   };
 
   const handleSaveLimit = async (data: any) => {
+    console.log('🔍 Сохранение лимита, данные:', data);
+    
     try {
       // Используем новый API для лимитов по категориям
       const payload: any = {
@@ -1038,9 +1279,12 @@ export default function InventoryFinancialReport({ objectId }: InventoryFinancia
           payload.endDate = data.endDate;
         }
       } else if (data.periodType === 'SEMI_ANNUAL' || data.periodType === 'ANNUAL') {
-        payload.startDate = data.startDate;
-        payload.endDate = data.endDate;
+        // Конвертируем Date объекты в ISO строки
+        payload.startDate = data.startDate instanceof Date ? data.startDate.toISOString() : data.startDate;
+        payload.endDate = data.endDate instanceof Date ? data.endDate.toISOString() : data.endDate;
       }
+
+      console.log('📤 Отправляем payload:', payload);
 
       const response = await fetch(`/api/objects/${data.objectId}/expense-limits`, {
         method: 'POST',
@@ -1050,17 +1294,17 @@ export default function InventoryFinancialReport({ objectId }: InventoryFinancia
       });
       
       if (response.ok) {
-        fetchBalances();
+        // Обновляем данные без перезагрузки страницы
+        await fetchBalances();
         setEditLimitModal({isOpen: false, balance: null});
-        alert('Лимит успешно установлен');
       } else {
         const errorData = await response.json();
-        console.error('Error response:', errorData);
-        alert(`Ошибка: ${errorData.message || 'Не удалось установить лимит'}`);
+        console.error('❌ Error response:', errorData);
+        // Показываем ошибку в консоли, но не блокируем UI
       }
     } catch (error) {
-      console.error('Error saving limit:', error);
-      alert('Ошибка сети при установке лимита');
+      console.error('❌ Error saving limit:', error);
+      // Ошибка в консоли, но не блокируем UI
     }
   };
 
@@ -1081,23 +1325,20 @@ export default function InventoryFinancialReport({ objectId }: InventoryFinancia
         fetchBalances();
         setAddExpenseModal({isOpen: false, balance: null});
         
-        // Показываем предупреждение если есть
+        // Логируем предупреждение если есть
         if (responseData.warning) {
-          alert(`✅ Расход добавлен\n\n⚠️ ${responseData.warning}`);
-        } else {
-          alert('✅ Расход успешно добавлен');
+          console.warn('⚠️ Расход добавлен с предупреждением:', responseData.warning);
         }
       } else {
         console.error('Error response:', responseData);
         if (responseData.limitExceeded) {
-          alert(`❌ Превышен лимит!\n\n${responseData.warning || responseData.message}`);
+          console.error('❌ Превышен лимит:', responseData.warning || responseData.message);
         } else {
-          alert(`Ошибка: ${responseData.error || responseData.message || 'Не удалось создать расход'}`);
+          console.error('Ошибка:', responseData.error || responseData.message);
         }
       }
     } catch (error) {
       console.error('Error saving expense:', error);
-      alert('Ошибка сети при создании расхода');
     }
   };
 
@@ -1117,11 +1358,10 @@ export default function InventoryFinancialReport({ objectId }: InventoryFinancia
       } else {
         const errorData = await response.json();
         console.error('Error response:', errorData);
-        alert(`Ошибка: ${errorData.error || 'Не удалось установить лимиты'}`);
+        console.error('Ошибка:', errorData.error || 'Не удалось установить лимиты');
       }
     } catch (error) {
       console.error('Error saving bulk limits:', error);
-      alert('Ошибка сети при установке лимитов');
     }
   };
 
@@ -1135,12 +1375,21 @@ export default function InventoryFinancialReport({ objectId }: InventoryFinancia
     'Июль', 'Август', 'Сентябрь', 'Октябрь', 'Ноябрь', 'Декабрь'
   ];
 
+  // Фильтрация балансов по поисковому запросу
+  const filteredBalances = balances.filter(balance => {
+    const query = searchQuery.toLowerCase();
+    return (
+      balance.objectName.toLowerCase().includes(query) ||
+      balance.objectAddress.toLowerCase().includes(query)
+    );
+  });
+
   if (loading) {
     return (
       <div className="flex items-center justify-center p-8">
         <div className="text-center">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-2"></div>
-          <p className="text-gray-600">Загрузка финансовой отчетности...</p>
+          <p className="text-gray-600">Загрузка данных...</p>
         </div>
       </div>
     );
@@ -1243,8 +1492,20 @@ export default function InventoryFinancialReport({ objectId }: InventoryFinancia
         </Card>
       </div>
 
+      {/* Поиск */}
+      <div className="relative">
+        <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
+        <Input
+          type="text"
+          placeholder="Поиск по названию объекта или адресу..."
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+          className="pl-10 py-6 text-base"
+        />
+      </div>
+
           {/* Отчет по объектам */}
-          {balances.length === 0 ? (
+          {filteredBalances.length === 0 ? (
         <Card>
           <CardContent className="p-8 text-center">
             <DollarSign className="w-12 h-12 text-gray-400 mx-auto mb-4" />
@@ -1258,7 +1519,7 @@ export default function InventoryFinancialReport({ objectId }: InventoryFinancia
         </Card>
           ) : (
             <div className="grid gap-4">
-          {balances.map((balance) => (
+          {filteredBalances.map((balance) => (
             <Card key={balance.objectId} className={balance.isOverBudget ? 'border-red-200 bg-red-50' : ''}>
               <CardContent className="p-4">
                 <div className="flex items-start justify-between">

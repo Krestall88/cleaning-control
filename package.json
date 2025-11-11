@@ -74,7 +74,6 @@
     "zod": "^3.23.8"
   },
   "devDependencies": {
-    "@faker-js/faker": "^10.1.0",
     "@playwright/test": "^1.44.1",
     "@testing-library/react": "^16.0.0",
     "@types/bcryptjs": "^2.4.6",

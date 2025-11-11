@@ -39,28 +39,30 @@
    ```
 
 2. **Удалите node_modules (будем переустанавливать):**
-   ```bash
-   rmdir /s /q node_modules
+   ```powershell
+   # Для PowerShell используйте:
+   Remove-Item -Recurse -Force node_modules
    ```
 
-3. **Удалите старый .env.local (если есть):**
-   ```bash
-   del .env.local
+3. **Удалите старые .env файлы:**
+   ```powershell
+   Remove-Item .env -ErrorAction SilentlyContinue
+   Remove-Item .env.local -ErrorAction SilentlyContinue
    ```
 
 4. **Удалите папку .next (кеш):**
-   ```bash
-   rmdir /s /q .next
+   ```powershell
+   Remove-Item -Recurse -Force .next -ErrorAction SilentlyContinue
    ```
 
 5. **Удалите лишние файлы документации:**
-   ```bash
-   del CHANGELOG-DEPUTY-FIXES.md
-   del BULK_LIMITS_REDESIGN.md
-   del CLEANUP_OCTOBER_DATA.md
-   del MULTIPLE_LIMITS_GUIDE.md
-   del FINAL_INSTRUCTIONS.md
-   del ADDITIONAL_TASKS_IMPLEMENTATION.md
+   ```powershell
+   Remove-Item CHANGELOG-DEPUTY-FIXES.md -ErrorAction SilentlyContinue
+   Remove-Item BULK_LIMITS_REDESIGN.md -ErrorAction SilentlyContinue
+   Remove-Item CLEANUP_OCTOBER_DATA.md -ErrorAction SilentlyContinue
+   Remove-Item MULTIPLE_LIMITS_GUIDE.md -ErrorAction SilentlyContinue
+   Remove-Item FINAL_INSTRUCTIONS.md -ErrorAction SilentlyContinue
+   Remove-Item ADDITIONAL_TASKS_IMPLEMENTATION.md -ErrorAction SilentlyContinue
    ```
 
 ---

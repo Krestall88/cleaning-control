@@ -100,11 +100,11 @@ export async function GET(request: NextRequest) {
             {
               periodType: 'DAILY'
             },
-            // SEMI_ANNUAL и ANNUAL лимиты (проверяем даты)
+            // SEMI_ANNUAL и ANNUAL лимиты (проверяем пересечение с месяцем)
             {
               periodType: { in: ['SEMI_ANNUAL', 'ANNUAL'] },
-              startDate: { lte: new Date(targetYear, targetMonth - 1, 1) },
-              endDate: { gte: new Date(targetYear, targetMonth - 1, 1) }
+              startDate: { lte: new Date(targetYear, targetMonth, 0, 23, 59, 59) }, // конец месяца
+              endDate: { gte: new Date(targetYear, targetMonth - 1, 1) } // начало месяца
             }
           ]
         },

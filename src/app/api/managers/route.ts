@@ -12,6 +12,7 @@ const createManagerSchema = z.object({
   email: z.string().email('Некорректный email'),
   phone: z.string().optional(),
   password: z.string().min(6, 'Пароль должен содержать минимум 6 символов'),
+  role: z.enum(['MANAGER', 'SENIOR_MANAGER', 'ACCOUNTANT']).optional().default('MANAGER'),
 });
 
 // GET /api/managers - получить список менеджеров
@@ -26,11 +27,11 @@ export async function GET(req: NextRequest) {
     // Получаем доступные объекты для пользователя
     const accessibleObjectIds = await getUserAccessibleObjects(user);
     
-    // Фильтруем менеджеров по доступным объектам
+    // Фильтруем менеджеров, старших менеджеров и бухгалтеров по доступным объектам
     const managersFilter = user.role === 'ADMIN' 
-      ? { role: 'MANAGER' }
+      ? { role: { in: ['MANAGER', 'SENIOR_MANAGER', 'ACCOUNTANT'] } }
       : { 
-          role: 'MANAGER',
+          role: { in: ['MANAGER', 'SENIOR_MANAGER', 'ACCOUNTANT'] },
           managedObjects: {
             some: {
               id: { in: accessibleObjectIds }
@@ -70,18 +71,17 @@ export async function GET(req: NextRequest) {
 
     // Получаем информацию об участках для каждого менеджера
     const managersWithSites = managers.map((manager) => {
-      const sites = manager.managedSites.map(site => ({
-        name: site.name,
-        objectName: site.object.name,
-        comment: site.comment
-      }));
+      const sites = manager.managedSites
+        .filter(site => !site.name.includes('__VIRTUAL__')) // Исключаем виртуальные участки
+        .map(site => ({
+          name: site.name,
+          objectName: site.object.name,
+          comment: site.comment
+        }));
 
-      // Формируем информацию о комментариях для отображения
-      const commentsInfo = sites.length > 0 
-        ? sites
-            .filter(site => site.comment) // Только участки с комментариями
-            .map(site => site.comment)
-            .join(', ')
+      // Формируем информацию об участках для отображения
+      const sitesInfo = sites.length > 0 
+        ? sites.map(site => `${site.objectName} / ${site.name}`).join('; ')
         : '';
 
       // Считаем уникальные объекты: прямо назначенные + через участки
@@ -94,15 +94,26 @@ export async function GET(req: NextRequest) {
         name: manager.name,
         email: manager.email,
         phone: manager.phone,
+        role: manager.role,
         createdAt: manager.createdAt,
-        objectsCount: allUniqueObjects.length, // Считаем все уникальные объекты
-        sitesInfo: commentsInfo, // Теперь показываем комментарии вместо названий участков
+        objectsCount: allUniqueObjects.length,
+        sitesInfo: sitesInfo, // Показываем объект / участок
         sites: sites,
-        objectNames: allUniqueObjects.join(', ') // Добавляем названия объектов для отображения
+        objectNames: allUniqueObjects.join(', ')
       };
     });
 
-    return NextResponse.json(managersWithSites);
+    // Сортируем: бухгалтеры в начале, затем остальные по дате создания
+    const sortedManagers = managersWithSites.sort((a, b) => {
+      // Бухгалтеры всегда в начале
+      if (a.role === 'ACCOUNTANT' && b.role !== 'ACCOUNTANT') return -1;
+      if (a.role !== 'ACCOUNTANT' && b.role === 'ACCOUNTANT') return 1;
+      
+      // Внутри каждой группы сортируем по дате создания (новые первыми)
+      return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+    });
+
+    return NextResponse.json(sortedManagers);
   } catch (error) {
     console.error('Error fetching managers:', error);
     return NextResponse.json(
@@ -147,7 +158,7 @@ export async function POST(req: NextRequest) {
         email: validatedData.email,
         phone: validatedData.phone,
         password: hashedPassword,
-        role: 'MANAGER',
+        role: validatedData.role,
       },
       select: {
         id: true,

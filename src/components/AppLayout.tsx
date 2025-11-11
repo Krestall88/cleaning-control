@@ -2,8 +2,10 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { useTaskPolling } from '@/hooks/useTaskPolling';
+import { useBrowserNotifications } from '@/hooks/useBrowserNotifications';
+import { useSmartPolling } from '@/hooks/useSmartPolling';
 import { Menu, X } from 'lucide-react';
 
 interface User {
@@ -23,6 +25,11 @@ export default function AppLayout({ children }: AppLayoutProps) {
   const [mounted, setMounted] = useState(false);
   const [newTasksCount, setNewTasksCount] = useState(0);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const lastCheckRef = useRef<Date>(new Date());
+  const previousCountsRef = useRef({ tasks: 0, comments: 0 });
+
+  // Browser Notifications
+  const { showNotification, permission } = useBrowserNotifications();
 
   useEffect(() => {
     setMounted(true);
@@ -70,8 +77,75 @@ export default function AppLayout({ children }: AppLayoutProps) {
     }
   };
 
-  // Polling для обновления счетчика каждые 30 секунд
-  useTaskPolling(fetchNewTasksCount, 30000, !!user);
+  // Функция для проверки новых уведомлений (легковесная)
+  const checkNotifications = async () => {
+    if (!user) return;
+
+    try {
+      const response = await fetch(
+        `/api/notifications/unread?lastCheck=${lastCheckRef.current.toISOString()}`
+      );
+      
+      if (response.ok) {
+        const data = await response.json();
+        
+        // Обновляем время последней проверки
+        lastCheckRef.current = new Date(data.timestamp);
+        
+        // Обновляем счетчик заданий
+        if (data.newTasksCount > 0) {
+          setNewTasksCount(prev => prev + data.newTasksCount);
+        }
+
+        // Показываем Browser Notifications только для НОВЫХ событий
+        if (permission === 'granted' && data.events && data.events.length > 0) {
+          data.events.forEach((event: any) => {
+            if (event.type === 'new_task') {
+              // Проверяем, не показывали ли уже это уведомление
+              if (previousCountsRef.current.tasks < data.newTasksCount) {
+                showNotification({
+                  title: '📋 Новое задание',
+                  body: `${event.objectName}: ${event.title}`,
+                  tag: `task-${event.id}`,
+                  url: '/additional-tasks',
+                  icon: '/favicon.ico'
+                });
+              }
+            } else if (event.type === 'new_comment') {
+              if (previousCountsRef.current.comments < data.newCommentsCount) {
+                showNotification({
+                  title: '💬 Новый комментарий',
+                  body: `${event.authorName}: ${event.comment}`,
+                  tag: `comment-${event.id}`,
+                  url: '/additional-tasks',
+                  icon: '/favicon.ico'
+                });
+              }
+            }
+          });
+        }
+
+        // Сохраняем текущие счетчики
+        previousCountsRef.current = {
+          tasks: data.newTasksCount,
+          comments: data.newCommentsCount
+        };
+      }
+    } catch (error) {
+      console.error('Error checking notifications:', error);
+    }
+  };
+
+  // Умный polling с адаптивным интервалом
+  useSmartPolling(checkNotifications, {
+    activeInterval: 30000,      // 30 сек когда активна
+    backgroundInterval: 60000,   // 60 сек в фоне
+    inactivityTimeout: 300000,   // 5 минут неактивности
+    enabled: !!user && permission === 'granted'
+  });
+
+  // Старый polling для обратной совместимости (можно удалить позже)
+  useTaskPolling(fetchNewTasksCount, 30000, !!user && permission !== 'granted');
 
   // Обновляем счетчик при переходе на страницу дополнительных заданий
   useEffect(() => {
@@ -273,6 +347,18 @@ export default function AppLayout({ children }: AppLayoutProps) {
             </Link>
           )}
         </>
+      )}
+      
+      {/* Telegram - доступен всем пользователям */}
+      {user && (
+        <Link
+          href="/telegram"
+          className={`flex items-center px-3 py-2 text-sm text-gray-300 hover:bg-slate-700 hover:text-white rounded transition-colors mb-1 ${isActive('/telegram')}`}
+          onClick={() => setIsMobileMenuOpen(false)}
+        >
+          <span className="mr-3">📱</span>
+          Telegram
+        </Link>
       )}
       
       {/* Кнопка выхода для всех пользователей */}

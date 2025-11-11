@@ -70,6 +70,12 @@ export async function GET(request: NextRequest) {
             },
             {
               periodType: 'DAILY'
+            },
+            // SEMI_ANNUAL и ANNUAL лимиты (проверяем пересечение с месяцем)
+            {
+              periodType: { in: ['SEMI_ANNUAL', 'ANNUAL'] },
+              startDate: { lte: new Date(year, month, 0, 23, 59, 59) }, // конец месяца
+              endDate: { gte: new Date(year, month - 1, 1) } // начало месяца
             }
           ]
         },
@@ -79,12 +85,22 @@ export async function GET(request: NextRequest) {
         }
       });
 
-      // Суммируем лимиты по категориям
-      // Для DAILY умножаем на количество дней в месяце
+      // Суммируем лимиты по категориям, приводя к месячному эквиваленту
       const daysInMonth = new Date(year, month, 0).getDate();
       const limitAmount = categoryLimits.reduce((sum: number, limit: any) => {
         const amount = parseFloat(limit.amount.toString());
-        return sum + (limit.periodType === 'DAILY' ? amount * daysInMonth : amount);
+        
+        if (limit.periodType === 'MONTHLY') {
+          return sum + amount;
+        } else if (limit.periodType === 'DAILY') {
+          return sum + (amount * daysInMonth);
+        } else if (limit.periodType === 'SEMI_ANNUAL') {
+          return sum + (amount / 6);
+        } else if (limit.periodType === 'ANNUAL') {
+          return sum + (amount / 12);
+        }
+        
+        return sum;
       }, 0);
 
       // Получаем общую сумму расходов за месяц
