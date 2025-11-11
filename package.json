@@ -26,6 +26,7 @@
     "import-techcards": "tsx scripts/import-techcards-from-excel.ts",
     "check-object-names": "tsx scripts/check-current-object-names.ts",
     "final-object-update": "tsx scripts/final-object-update.ts",
+    "fix-techcards": "tsx scripts/fix-techcards-structure.ts",
     "postinstall": "prisma generate"
   },
   "prisma": {

@@ -101,7 +101,7 @@ ${taskData.description ? `\n📝 <b>Описание:</b> ${taskData.description
 ⏰ Пожалуйста, примите задачу в работу.
   `.trim();
 
-  const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
+  const appUrl = process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000';
 
   return sendTelegramMessage(telegramId, message, {
     parseMode: 'HTML',
@@ -135,7 +135,7 @@ export async function notifyObjectAssignment(
 Теперь вы можете управлять этим объектом.
   `.trim();
 
-  const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
+  const appUrl = process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000';
 
   return sendTelegramMessage(telegramId, message, {
     parseMode: 'HTML',
@@ -172,7 +172,7 @@ export async function notifySiteAssignment(
 Теперь вы можете управлять этим участком.
   `.trim();
 
-  const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
+  const appUrl = process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000';
 
   return sendTelegramMessage(telegramId, message, {
     parseMode: 'HTML',
@@ -208,7 +208,7 @@ export async function notifyOverdueTask(
 Пожалуйста, завершите задачу как можно скорее.
   `.trim();
 
-  const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
+  const appUrl = process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000';
 
   return sendTelegramMessage(telegramId, message, {
     parseMode: 'HTML',
@@ -243,7 +243,7 @@ export async function notifyTaskComment(
 <i>${commentData.comment}</i>
   `.trim();
 
-  const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
+  const appUrl = process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000';
 
   return sendTelegramMessage(telegramId, message, {
     parseMode: 'HTML',
