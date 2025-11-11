@@ -334,50 +334,58 @@ export default function ObjectsClientPage() {
                       if (obj.manager?.name) {
                         managers.push({ 
                           name: obj.manager.name, 
-                          role: obj.manager.role === 'SENIOR_MANAGER' ? 'Старший' : undefined 
+                          role: (obj.manager as any).role === 'SENIOR_MANAGER' ? 'Старший' : undefined 
                         });
                       }
                       
                       // Менеджеры участков
                       if ((obj as any).sites) {
                         (obj as any).sites.forEach((site: any) => {
+                          // Обычный менеджер участка
                           if (site.manager?.name && !site.name.includes('__VIRTUAL__')) {
-                            managers.push({ 
-                              name: site.manager.name, 
-                              site: site.name,
-                              role: site.manager.role === 'SENIOR_MANAGER' ? 'Старший' : undefined
-                            });
+                            const isAlreadyAdded = managers.some(m => m.name === site.manager.name);
+                            if (!isAlreadyAdded) {
+                              managers.push({ 
+                                name: site.manager.name, 
+                                site: site.name,
+                                role: site.manager.role === 'SENIOR_MANAGER' ? 'Старший' : undefined
+                              });
+                            }
                           }
+                          // Старший менеджер участка
                           if (site.seniorManager?.name && !site.name.includes('__VIRTUAL__')) {
-                            managers.push({ 
-                              name: site.seniorManager.name, 
-                              site: site.name,
-                              role: 'Старший'
-                            });
+                            const isAlreadyAdded = managers.some(m => m.name === site.seniorManager.name);
+                            if (!isAlreadyAdded) {
+                              managers.push({ 
+                                name: site.seniorManager.name, 
+                                site: site.name,
+                                role: 'Старший'
+                              });
+                            }
                           }
                         });
                       }
                       
-                      // Убираем дубликаты
-                      const uniqueManagers = managers.filter((m, i, arr) => 
-                        arr.findIndex(x => x.name === m.name && x.site === m.site) === i
-                      );
-                      
-                      if (uniqueManagers.length === 0) {
+                      if (managers.length === 0) {
                         return <span className="text-gray-500 ml-2">Не назначены</span>;
                       }
                       
-                      if (uniqueManagers.length === 1 && !uniqueManagers[0].site) {
-                        return <span className="ml-2">{uniqueManagers[0].name}</span>;
+                      if (managers.length === 1 && !managers[0].site) {
+                        return (
+                          <span className="ml-2">
+                            {managers[0].name}
+                            {managers[0].role && <span className="ml-1 text-xs bg-purple-100 text-purple-700 px-2 py-0.5 rounded">{managers[0].role}</span>}
+                          </span>
+                        );
                       }
                       
                       return (
                         <div className="ml-2 space-y-1 mt-1">
-                          {uniqueManagers.map((m, i) => (
-                            <div key={i} className="text-xs">
-                              • {m.name}
-                              {m.role && <span className="text-blue-600 ml-1">({m.role})</span>}
-                              {m.site && <span className="text-gray-500 ml-1">- {m.site}</span>}
+                          {managers.map((m, i) => (
+                            <div key={i} className="text-xs flex items-center gap-1">
+                              <span>• {m.name}</span>
+                              {m.role && <span className="bg-purple-100 text-purple-700 px-1.5 py-0.5 rounded text-[10px]">{m.role}</span>}
+                              {m.site && <span className="text-gray-500">- {m.site}</span>}
                             </div>
                           ))}
                         </div>

@@ -38,14 +38,15 @@ interface CleaningObject {
   address: string;
   createdAt: string;
   allowManagerEdit?: boolean;
-  manager?: { id: string; name: string; email: string };
+  manager?: { id: string; name: string; email: string; role?: string };
   creator?: { id: string; name: string };
   rooms: Room[];
   sites?: Array<{
     id: string;
     name: string;
     comment?: string;
-    manager?: { id: string; name: string; email: string };
+    manager?: { id: string; name: string; email: string; role?: string };
+    seniorManager?: { id: string; name: string; email: string; role?: string };
   }>;
   _count: {
     rooms: number;
@@ -643,9 +644,12 @@ export default function ObjectDetailClientPage() {
                           ) : (
                             <div>
                               <span className="text-sm font-medium text-gray-800">{site.manager?.name}</span>
-                              {showSiteName && !site.isVirtual && site.comment && (
+                              {site.manager?.role === 'SENIOR_MANAGER' && (
+                                <span className="ml-2 text-xs bg-purple-100 text-purple-700 px-2 py-0.5 rounded">Старший</span>
+                              )}
+                              {showSiteName && !site.isVirtual && (
                                 <span className="text-xs text-gray-600 block">
-                                  {site.comment}
+                                  Участок: {site.comment || site.name}
                                 </span>
                               )}
                             </div>
