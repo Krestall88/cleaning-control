@@ -5,6 +5,7 @@ erDiagram
             ADMIN ADMIN
 DEPUTY DEPUTY
 MANAGER MANAGER
+SENIOR_MANAGER SENIOR_MANAGER
 CLIENT CLIENT
 DEPUTY_ADMIN DEPUTY_ADMIN
 ACCOUNTANT ACCOUNTANT
@@ -93,6 +94,10 @@ ANNUAL ANNUAL
     String password 
     Role role 
     String phone "❓"
+    String telegramId "❓"
+    String telegramUsername "❓"
+    String telegramFirstName "❓"
+    String telegramLastName "❓"
     }
   
 
@@ -105,7 +110,10 @@ ANNUAL ANNUAL
     Json documents "❓"
     String timezone "❓"
     Json workingHours "❓"
+    String workStartTime "❓"
+    String workEndTime "❓"
     String workingDays 
+    String city "❓"
     Boolean autoChecklistEnabled 
     DateTime lastChecklistDate "❓"
     Boolean requirePhotoForCompletion 
@@ -323,6 +331,14 @@ ANNUAL ANNUAL
     }
   
 
+  "TelegramBindingCode" {
+    String id "🗝️"
+    DateTime createdAt 
+    String code 
+    DateTime expiresAt 
+    }
+  
+
   "DeputyAdminAssignment" {
     String id "🗝️"
     DateTime createdAt 
@@ -437,12 +453,14 @@ ANNUAL ANNUAL
     "User" o{--}o "ReportingTask" : "createdReportingTasks"
     "User" o{--}o "Request" : "createdRequests"
     "User" o{--}o "Site" : "managedSites"
+    "User" o{--}o "Site" : "seniorManagedSites"
     "User" o{--}o "Task" : "completedTasks"
     "User" o{--}o "TaskExecution" : "taskExecutions"
     "User" o{--}o "notifications" : "notifications"
     "User" o{--}o "task_admin_comments" : "adminComments"
     "User" o{--}o "ReportingTaskAttachment" : "reportingTaskAttachments"
     "User" o{--}o "AdditionalTaskComment" : "additionalTaskComments"
+    "User" o{--}o "TelegramBindingCode" : "telegramBindingCode"
     "CleaningObject" o{--}o "AdditionalTask" : "additionalTasks"
     "CleaningObject" o{--}o "Checklist" : "checklists"
     "CleaningObject" o|--|| "User" : "creator"
@@ -468,6 +486,7 @@ ANNUAL ANNUAL
     "Room" o{--}o "Task" : "tasks"
     "Room" o{--}o "TechCard" : "techCards"
     "Site" o|--|o "User" : "manager"
+    "Site" o|--|o "User" : "seniorManager"
     "Site" o|--|| "CleaningObject" : "object"
     "Site" o{--}o "Zone" : "zones"
     "Zone" o{--}o "RoomGroup" : "roomGroups"
@@ -524,6 +543,7 @@ ANNUAL ANNUAL
     "AdditionalTask" o{--}o "AdditionalTaskComment" : "comments"
     "AdditionalTaskComment" o|--|| "AdditionalTask" : "task"
     "AdditionalTaskComment" o|--|| "User" : "user"
+    "TelegramBindingCode" o|--|| "User" : "user"
     "DeputyAdminAssignment" o|--|| "User" : "assignedBy"
     "DeputyAdminAssignment" o|--|| "User" : "deputyAdmin"
     "DeputyAdminAssignment" o|--|| "CleaningObject" : "object"

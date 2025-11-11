@@ -1,6 +1,5 @@
 generator client {
-  provider        = "prisma-client-js"
-  previewFeatures = ["driverAdapters"]
+  provider = "prisma-client-js"
 }
 
 generator erd {
@@ -23,6 +22,10 @@ model User {
   password                 String
   role                     Role                    @default(MANAGER)
   phone                    String?
+  telegramId               String?                 @unique
+  telegramUsername         String?
+  telegramFirstName        String?
+  telegramLastName         String?
   assignedAdditionalTasks  AdditionalTask[]        @relation("AssignedAdditionalTasks")
   completedAdditionalTasks AdditionalTask[]        @relation("CompletedAdditionalTasks")
   auditLogs                AuditLog[]
@@ -41,12 +44,14 @@ model User {
   createdReportingTasks    ReportingTask[]         @relation("CreatedReportingTasks")
   createdRequests          Request[]
   managedSites             Site[]                  @relation("SiteManager")
+  seniorManagedSites       Site[]                  @relation("SiteSeniorManager")
   completedTasks           Task[]
   taskExecutions           TaskExecution[]         @relation("TaskExecutions")
   notifications            Notification[]
   adminComments            TaskAdminComment[]      @relation("AdminComments")
   reportingTaskAttachments ReportingTaskAttachment[] @relation("ReportingTaskAttachments")
   additionalTaskComments   AdditionalTaskComment[] @relation("AdditionalTaskComments")
+  telegramBindingCode      TelegramBindingCode?    @relation("TelegramBindingCodes")
 }
 
 model CleaningObject {
@@ -56,9 +61,12 @@ model CleaningObject {
   name                        String
   address                     String
   documents                   Json?
-  timezone                    String?
+  timezone                    String?                 @default("Europe/Moscow")
   workingHours                Json?
+  workStartTime               String?                 @default("09:00")
+  workEndTime                 String?                 @default("18:00")
   workingDays                 String[]
+  city                        String?
   autoChecklistEnabled        Boolean                 @default(true)
   lastChecklistDate           DateTime?
   creatorId                   String
@@ -107,17 +115,19 @@ model Room {
 }
 
 model Site {
-  id          String         @id @default(cuid())
-  createdAt   DateTime       @default(now())
-  name        String
-  description String?
-  area        Float?
-  objectId    String
-  managerId   String?
-  comment     String?
-  manager     User?          @relation("SiteManager", fields: [managerId], references: [id])
-  object      CleaningObject @relation(fields: [objectId], references: [id], onDelete: Cascade)
-  zones       Zone[]
+  id               String         @id @default(cuid())
+  createdAt        DateTime       @default(now())
+  name             String
+  description      String?
+  area             Float?
+  objectId         String
+  managerId        String?
+  seniorManagerId  String?
+  comment          String?
+  manager          User?          @relation("SiteManager", fields: [managerId], references: [id])
+  seniorManager    User?          @relation("SiteSeniorManager", fields: [seniorManagerId], references: [id])
+  object           CleaningObject @relation(fields: [objectId], references: [id], onDelete: Cascade)
+  zones            Zone[]
 }
 
 model Zone {
@@ -396,6 +406,15 @@ model AdditionalTaskComment {
   user      User           @relation("AdditionalTaskComments", fields: [userId], references: [id])
 }
 
+model TelegramBindingCode {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+  code      String   @unique
+  userId    String   @unique
+  expiresAt DateTime
+  user      User     @relation("TelegramBindingCodes", fields: [userId], references: [id], onDelete: Cascade)
+}
+
 model DeputyAdminAssignment {
   id            String         @id @default(cuid())
   createdAt     DateTime       @default(now())
@@ -553,6 +572,7 @@ enum Role {
   ADMIN
   DEPUTY
   MANAGER
+  SENIOR_MANAGER
   CLIENT
   DEPUTY_ADMIN
   ACCOUNTANT
