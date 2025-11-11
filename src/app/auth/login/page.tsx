@@ -32,10 +32,12 @@ export default function LoginPage() {
         console.log('✅ Успешный вход:', data.user.name, 'Роль:', data.user.role);
         
         // Редирект в зависимости от роли
-        if (data.user.role === 'MANAGER') {
-          router.push('/objects'); // Менеджеры сразу на объекты
+        if (data.user.role === 'MANAGER' || data.user.role === 'SENIOR_MANAGER') {
+          router.push('/objects'); // Менеджеры и старшие менеджеры → Объекты
+        } else if (data.user.role === 'ACCOUNTANT') {
+          router.push('/inventory'); // Бухгалтер → Инвентарь
         } else {
-          router.push('/'); // Остальные на дашборд
+          router.push('/'); // Админ, зам админа и зам → Дашборд
         }
         router.refresh(); // Обновляем страницу для применения аутентификации
       } else {

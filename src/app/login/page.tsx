@@ -30,10 +30,12 @@ export default function LoginPage() {
       document.cookie = `token=${token}; path=/; max-age=86400;`; // Expires in 1 day
 
       // Редирект в зависимости от роли
-      if (user.role === 'ACCOUNTANT') {
+      if (user.role === 'MANAGER' || user.role === 'SENIOR_MANAGER') {
+        router.push('/objects'); // Менеджеры и старшие менеджеры → Объекты
+      } else if (user.role === 'ACCOUNTANT') {
         router.push('/inventory'); // Бухгалтер → Инвентарь
       } else {
-        router.push('/'); // Остальные → Дашборд
+        router.push('/'); // Админ, зам админа и зам → Дашборд
       }
     } catch (err: any) {
       setError(err.message);
