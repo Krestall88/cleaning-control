@@ -27,6 +27,7 @@
     "check-object-names": "tsx scripts/check-current-object-names.ts",
     "final-object-update": "tsx scripts/final-object-update.ts",
     "fix-techcards": "tsx scripts/fix-techcards-structure.ts",
+    "add-techcards-managers": "tsx scripts/add-techcards-and-managers.ts",
     "postinstall": "prisma generate"
   },
   "prisma": {
