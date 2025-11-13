@@ -395,17 +395,17 @@ export default function UnifiedCalendarPage() {
   }
 
   return (
-    <div className="container mx-auto p-6 space-y-6">
+    <div className="responsive-container space-y-4 sm:space-y-6 py-4 sm:py-6">
       {/* Заголовок и навигация */}
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 sm:gap-4">
         <div>
-          <h1 className="text-2xl font-bold">📅 Единый календарь задач</h1>
-          <p className="text-gray-600">Новая система управления задачами</p>
+          <h1 className="text-lg sm:text-3xl font-bold">📅 Единый календарь задач</h1>
+          <p className="text-xs sm:text-base text-gray-600">Новая система управления задачами</p>
         </div>
         
-        <div className="flex flex-wrap gap-2">
+        <div className="flex flex-wrap gap-2 w-full sm:w-auto">
           <Select value={selectedObject || "all"} onValueChange={(value) => setSelectedObject(value === "all" ? "" : value)}>
-            <SelectTrigger className="w-48">
+            <SelectTrigger className="px-3 py-2 sm:px-4 sm:py-2.5 text-sm sm:text-base flex-1 sm:w-48">
               <SelectValue placeholder="Все объекты" />
             </SelectTrigger>
             <SelectContent>
@@ -419,7 +419,7 @@ export default function UnifiedCalendarPage() {
           </Select>
           
           <Select value={view} onValueChange={(value: 'day' | 'week' | 'month') => setView(value)}>
-            <SelectTrigger className="w-32">
+            <SelectTrigger className="px-3 py-2 sm:px-4 sm:py-2.5 text-sm sm:text-base w-full sm:w-32">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
@@ -432,107 +432,110 @@ export default function UnifiedCalendarPage() {
       </div>
 
       {/* Навигация по датам */}
-      <div className="flex items-center justify-between bg-white p-4 rounded-lg border">
+      <div className="flex flex-col sm:flex-row items-center justify-between bg-white p-3 sm:p-4 rounded-lg border gap-3">
         <Button 
           variant="outline" 
           onClick={() => handleDateChange('prev')}
-          className="flex items-center gap-2"
+          className="px-2 py-1.5 sm:px-3 sm:py-2 text-xs sm:text-sm w-full sm:w-auto"
         >
-          ← Назад
+          <span className="hidden sm:inline">← Назад</span>
+          <span className="sm:hidden">←</span>
         </Button>
         
-        <div className="text-center">
-          <h2 className="text-lg font-semibold">{getDateRangeText()}</h2>
-          <p className="text-sm text-gray-500 capitalize">
-            {view === 'day' ? 'Дневной вид' : view === 'week' ? 'Недельный вид' : 'Месячный вид'}
+        <div className="text-center flex-1">
+          <h2 className="text-base sm:text-lg font-semibold">{getDateRangeText()}</h2>
+          <p className="text-xs sm:text-sm text-gray-500 capitalize">
+            {view === 'day' ? 'День' : view === 'week' ? 'Неделя' : 'Месяц'}
           </p>
         </div>
         
-        <div className="flex gap-2">
+        <div className="flex gap-2 w-full sm:w-auto">
           <Button 
             variant="outline" 
             onClick={() => setCurrentDate(new Date())}
             size="sm"
+            className="px-2 py-1.5 sm:px-3 sm:py-2 text-xs sm:text-sm flex-1 sm:flex-none"
           >
             Сегодня
           </Button>
           <Button 
             variant="outline" 
             onClick={() => handleDateChange('next')}
-            className="flex items-center gap-2"
+            className="px-2 py-1.5 sm:px-3 sm:py-2 text-xs sm:text-sm flex-1 sm:flex-none"
           >
-            Вперед →
+            <span className="hidden sm:inline">Вперед →</span>
+            <span className="sm:hidden">→</span>
           </Button>
         </div>
       </div>
 
       {/* Статистика */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2 sm:gap-4">
         <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center gap-3">
+          <CardContent className="p-3 sm:p-4">
+            <div className="flex items-center gap-2 sm:gap-3">
               <div className="p-2 bg-blue-100 rounded-lg">
-                <Calendar className="h-5 w-5 text-blue-600" />
+                <Calendar className="w-4 h-4 sm:w-5 sm:h-5 text-blue-600" />
               </div>
               <div>
-                <p className="text-sm text-gray-600">Всего задач</p>
-                <p className="text-xl font-bold">{stats.totalTasks}</p>
+                <p className="text-xs sm:text-sm text-gray-600">Всего</p>
+                <p className="text-lg sm:text-xl font-bold">{stats.totalTasks}</p>
               </div>
             </div>
           </CardContent>
         </Card>
 
         <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center gap-3">
+          <CardContent className="p-3 sm:p-4">
+            <div className="flex items-center gap-2 sm:gap-3">
               <div className="p-2 bg-red-100 rounded-lg">
-                <AlertTriangle className="h-5 w-5 text-red-600" />
+                <AlertTriangle className="w-4 h-4 sm:w-5 sm:h-5 text-red-600" />
               </div>
               <div>
-                <p className="text-sm text-gray-600">Просрочено</p>
-                <p className="text-xl font-bold text-red-600">{stats.overdueTasks}</p>
+                <p className="text-xs sm:text-sm text-gray-600">Просрочено</p>
+                <p className="text-lg sm:text-xl font-bold text-red-600">{stats.overdueTasks}</p>
               </div>
             </div>
           </CardContent>
         </Card>
 
         <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center gap-3">
+          <CardContent className="p-3 sm:p-4">
+            <div className="flex items-center gap-2 sm:gap-3">
               <div className="p-2 bg-orange-100 rounded-lg">
-                <Clock className="h-5 w-5 text-orange-600" />
+                <Clock className="w-4 h-4 sm:w-5 sm:h-5 text-orange-600" />
               </div>
               <div>
-                <p className="text-sm text-gray-600">На сегодня</p>
-                <p className="text-xl font-bold text-orange-600">{stats.todayTasks}</p>
+                <p className="text-xs sm:text-sm text-gray-600">Сегодня</p>
+                <p className="text-lg sm:text-xl font-bold text-orange-600">{stats.todayTasks}</p>
               </div>
             </div>
           </CardContent>
         </Card>
 
         <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center gap-3">
+          <CardContent className="p-3 sm:p-4">
+            <div className="flex items-center gap-2 sm:gap-3">
               <div className="p-2 bg-green-100 rounded-lg">
-                <CheckCircle className="h-5 w-5 text-green-600" />
+                <CheckCircle className="w-4 h-4 sm:w-5 sm:h-5 text-green-600" />
               </div>
               <div>
-                <p className="text-sm text-gray-600">Выполнено</p>
-                <p className="text-xl font-bold text-green-600">{stats.completedToday}</p>
+                <p className="text-xs sm:text-sm text-gray-600">Готово</p>
+                <p className="text-lg sm:text-xl font-bold text-green-600">{stats.completedToday}</p>
               </div>
             </div>
           </CardContent>
         </Card>
 
         <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center gap-3">
+          <CardContent className="p-3 sm:p-4">
+            <div className="flex items-center gap-2 sm:gap-3">
               <div className="p-2 bg-purple-100 rounded-lg">
-                <TrendingUp className="h-5 w-5 text-purple-600" />
+                <TrendingUp className="w-4 h-4 sm:w-5 sm:h-5 text-purple-600" />
               </div>
               <div>
-                <p className="text-sm text-gray-600">Выполнение</p>
-                <p className="text-xl font-bold text-purple-600">{stats.completionRate}%</p>
+                <p className="text-xs sm:text-sm text-gray-600">%</p>
+                <p className="text-lg sm:text-xl font-bold text-purple-600">{stats.completionRate}%</p>
               </div>
             </div>
           </CardContent>
@@ -548,13 +551,13 @@ export default function UnifiedCalendarPage() {
             <div className="relative">
               <input
                 type="text"
-                placeholder="Поиск по объектам или менеджерам..."
+                placeholder="Поиск..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full px-4 py-3 pl-10 pr-4 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="px-3 py-2 sm:px-4 sm:py-2.5 text-sm sm:text-base pl-8 pr-8"
               />
               <svg
-                className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400"
+                className="absolute left-2 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400"
                 fill="none"
                 stroke="currentColor"
                 viewBox="0 0 24 24"
@@ -569,9 +572,9 @@ export default function UnifiedCalendarPage() {
               {searchQuery && (
                 <button
                   onClick={() => setSearchQuery('')}
-                  className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                  className="absolute right-2 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
                 >
-                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                   </svg>
                 </button>

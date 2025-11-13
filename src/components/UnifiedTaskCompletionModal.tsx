@@ -316,24 +316,24 @@ export default function UnifiedTaskCompletionModal({
   return (
     <Dialog open={isOpen} onOpenChange={handleClose}>
       <DialogContent 
-        className="max-w-2xl"
+        className="w-[95vw] sm:max-w-[600px] md:max-w-[700px] max-h-[90vh] overflow-y-auto"
       >
         <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
-            <CheckCircle className="w-5 h-5 text-green-600" />
+          <DialogTitle className="flex items-center gap-2 text-base sm:text-lg">
+            <CheckCircle className="w-4 h-4 sm:w-5 sm:h-5 text-green-600" />
             Завершение задачи
           </DialogTitle>
         </DialogHeader>
 
-        <div className="space-y-4 md:space-y-6">
+        <div className="space-y-3 sm:space-y-4">
           {/* Информация о задаче */}
-          <div className="p-3 md:p-4 bg-gray-50 rounded-lg border">
+          <div className="p-3 sm:p-4 bg-gray-50 rounded-lg border">
             <div className="flex flex-col sm:flex-row items-start justify-between gap-2 mb-3">
-              <div className="flex-1 w-full">
-                <h3 className="font-semibold text-base md:text-lg text-gray-900 break-words">{task.description}</h3>
-                <div className="flex flex-wrap items-center gap-2 md:gap-4 mt-2 text-xs md:text-sm text-gray-600">
+              <div className="flex-1 w-full min-w-0">
+                <h3 className="text-base sm:text-lg font-semibold text-gray-900 break-words">{task.description}</h3>
+                <div className="flex flex-wrap items-center gap-2 sm:gap-3 mt-2 text-xs sm:text-sm text-gray-600">
                   <div className="flex items-center gap-1">
-                    <MapPin className="w-4 h-4" />
+                    <MapPin className="w-3 h-3 sm:w-4 sm:h-4" />
                     <span>{task.objectName}</span>
                   </div>
                   {task.roomName && (
@@ -343,14 +343,14 @@ export default function UnifiedTaskCompletionModal({
                     </div>
                   )}
                   <div className="flex items-center gap-1">
-                    <Calendar className="w-4 h-4" />
+                    <Calendar className="w-3 h-3 sm:w-4 sm:h-4" />
                     <span>{new Date(task.scheduledDate).toLocaleDateString('ru-RU')}</span>
                   </div>
                 </div>
               </div>
               <Badge 
                 variant={task.status === 'OVERDUE' ? 'destructive' : 'default'}
-                className="shrink-0 text-xs"
+                className="shrink-0 text-xs sm:text-sm"
               >
                 {task.status === 'OVERDUE' ? 'Просрочено' : 
                  task.status === 'AVAILABLE' ? 'На сегодня' : 
@@ -358,9 +358,9 @@ export default function UnifiedTaskCompletionModal({
               </Badge>
             </div>
             
-            <div className="text-xs md:text-sm text-gray-600">
+            <div className="text-xs sm:text-sm text-gray-600">
               <div className="flex items-center gap-1">
-                <Clock className="w-4 h-4" />
+                <Clock className="w-3 h-3 sm:w-4 sm:h-4" />
                 <span>Периодичность: {task.frequency}</span>
               </div>
               {task.techCard.workType && (

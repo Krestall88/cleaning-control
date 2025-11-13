@@ -227,7 +227,7 @@ export default function ObjectsClientPage() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 sm:space-y-6 mobile-padding">
       {error && (
         <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded">
           {error}
@@ -235,18 +235,20 @@ export default function ObjectsClientPage() {
       )}
 
       {/* Заголовок и кнопки */}
-      <div className="flex justify-between items-center">
-        <h2 className="text-xl font-semibold">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 sm:gap-4 mt-4 sm:mt-6">
+        <h2 className="mobile-text-xl font-semibold">
           {userRole === 'MANAGER' ? 'Мои объекты' : 'Управление объектами'}
         </h2>
         {/* DEBUG: Роль пользователя: {userRole || 'не загружена'} */}
         {userRole !== 'MANAGER' && (
-          <div className="flex gap-2">
+          <div className="flex flex-wrap gap-2 w-full sm:w-auto">
             <Button
               onClick={() => setIsCreateModalOpen(true)}
               variant="default"
+              className="mobile-button-sm flex-1 sm:flex-none"
             >
-              + Создать объект с техкартами
+              <span className="hide-mobile">+ Создать объект с техкартами</span>
+              <span className="show-mobile">+ Создать</span>
             </Button>
           </div>
         )}
@@ -261,13 +263,13 @@ export default function ObjectsClientPage() {
 
       {/* Поиск */}
       <div className="relative">
-        <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+        <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 mobile-icon" />
         <Input
           type="text"
-          placeholder="Поиск по названию или адресу..."
+          placeholder="Поиск..."
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
-          className="pl-10"
+          className="mobile-input pl-10"
         />
       </div>
 
@@ -289,26 +291,28 @@ export default function ObjectsClientPage() {
               );
             })
             .map((obj) => (
-            <Card key={obj.id} className="hover:shadow-lg transition-shadow">
-              <CardHeader>
-                <CardTitle className="flex justify-between items-start">
-                  <div>
-                    <h3 className="text-lg font-semibold">{obj.name}</h3>
+            <Card key={obj.id} className="hover:shadow-lg transition-shadow overflow-hidden">
+              <CardHeader className="p-3 sm:p-4">
+                <CardTitle className="flex flex-col gap-2">
+                  <div className="w-full">
+                    <h3 className="text-sm sm:text-lg font-semibold line-clamp-2">{obj.name}</h3>
                   </div>
-                  <div className="flex gap-2">
+                  <div className="flex gap-2 w-full">
                     <Button
                       onClick={() => router.push(`/objects/${obj.id}`)}
                       size="sm"
+                      className="flex-1 text-xs sm:text-sm px-2 py-1.5 sm:px-3 sm:py-2 min-h-[36px]"
                     >
-                      Подробнее
+                      📋 <span className="hidden sm:inline ml-1">Подробно</span>
                     </Button>
                     {(userRole !== 'MANAGER' || (userRole === 'MANAGER' && obj.allowManagerEdit)) && (
                       <Button
                         onClick={() => handleEdit(obj)}
                         size="sm"
                         variant="outline"
+                        className="flex-1 text-xs sm:text-sm px-2 py-1.5 sm:px-3 sm:py-2 min-h-[36px]"
                       >
-                        Редактировать
+                        ✏️ <span className="hidden sm:inline ml-1">Изменить</span>
                       </Button>
                     )}
                     {userRole !== 'MANAGER' && (
@@ -316,16 +320,17 @@ export default function ObjectsClientPage() {
                         onClick={() => handleDelete(obj.id)}
                         size="sm"
                         variant="destructive"
+                        className="flex-1 text-xs sm:text-sm px-2 py-1.5 sm:px-3 sm:py-2 min-h-[36px]"
                       >
-                        Удалить
+                        🗑️ <span className="hidden sm:inline ml-1">Удалить</span>
                       </Button>
                     )}
                   </div>
                 </CardTitle>
               </CardHeader>
-              <CardContent>
+              <CardContent className="mobile-card-compact">
                 <div className="space-y-2">
-                  <div className="text-sm">
+                  <div className="mobile-text-sm">
                     <span className="font-medium">Менеджеры:</span>
                     {(() => {
                       const managers: Array<{name: string, site?: string, role?: string}> = [];
@@ -334,58 +339,50 @@ export default function ObjectsClientPage() {
                       if (obj.manager?.name) {
                         managers.push({ 
                           name: obj.manager.name, 
-                          role: (obj.manager as any).role === 'SENIOR_MANAGER' ? 'Старший' : undefined 
+                          role: obj.manager.role === 'SENIOR_MANAGER' ? 'Старший' : undefined 
                         });
                       }
                       
                       // Менеджеры участков
                       if ((obj as any).sites) {
                         (obj as any).sites.forEach((site: any) => {
-                          // Обычный менеджер участка
                           if (site.manager?.name && !site.name.includes('__VIRTUAL__')) {
-                            const isAlreadyAdded = managers.some(m => m.name === site.manager.name);
-                            if (!isAlreadyAdded) {
-                              managers.push({ 
-                                name: site.manager.name, 
-                                site: site.name,
-                                role: site.manager.role === 'SENIOR_MANAGER' ? 'Старший' : undefined
-                              });
-                            }
+                            managers.push({ 
+                              name: site.manager.name, 
+                              site: site.name,
+                              role: site.manager.role === 'SENIOR_MANAGER' ? 'Старший' : undefined
+                            });
                           }
-                          // Старший менеджер участка
                           if (site.seniorManager?.name && !site.name.includes('__VIRTUAL__')) {
-                            const isAlreadyAdded = managers.some(m => m.name === site.seniorManager.name);
-                            if (!isAlreadyAdded) {
-                              managers.push({ 
-                                name: site.seniorManager.name, 
-                                site: site.name,
-                                role: 'Старший'
-                              });
-                            }
+                            managers.push({ 
+                              name: site.seniorManager.name, 
+                              site: site.name,
+                              role: 'Старший'
+                            });
                           }
                         });
                       }
                       
-                      if (managers.length === 0) {
+                      // Убираем дубликаты
+                      const uniqueManagers = managers.filter((m, i, arr) => 
+                        arr.findIndex(x => x.name === m.name && x.site === m.site) === i
+                      );
+                      
+                      if (uniqueManagers.length === 0) {
                         return <span className="text-gray-500 ml-2">Не назначены</span>;
                       }
                       
-                      if (managers.length === 1 && !managers[0].site) {
-                        return (
-                          <span className="ml-2">
-                            {managers[0].name}
-                            {managers[0].role && <span className="ml-1 text-xs bg-purple-100 text-purple-700 px-2 py-0.5 rounded">{managers[0].role}</span>}
-                          </span>
-                        );
+                      if (uniqueManagers.length === 1 && !uniqueManagers[0].site) {
+                        return <span className="ml-2">{uniqueManagers[0].name}</span>;
                       }
                       
                       return (
                         <div className="ml-2 space-y-1 mt-1">
-                          {managers.map((m, i) => (
-                            <div key={i} className="text-xs flex items-center gap-1">
-                              <span>• {m.name}</span>
-                              {m.role && <span className="bg-purple-100 text-purple-700 px-1.5 py-0.5 rounded text-[10px]">{m.role}</span>}
-                              {m.site && <span className="text-gray-500">- {m.site}</span>}
+                          {uniqueManagers.map((m, i) => (
+                            <div key={i} className="text-xs">
+                              • {m.name}
+                              {m.role && <span className="text-blue-600 ml-1">({m.role})</span>}
+                              {m.site && <span className="text-gray-500 ml-1">- {m.site}</span>}
                             </div>
                           ))}
                         </div>
