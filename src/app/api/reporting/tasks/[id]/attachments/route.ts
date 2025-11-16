@@ -1,9 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { getUserFromToken } from '@/lib/auth-middleware';
-import { writeFile, mkdir } from 'fs/promises';
-import { join } from 'path';
-import { randomUUID } from 'crypto';
+import { uploadToSupabase } from '@/lib/supabase';
 
 // GET /api/reporting/tasks/[id]/attachments - Получить вложения задачи
 export async function GET(
@@ -60,7 +58,7 @@ export async function POST(
 
     // Проверяем права доступа
     const canAddAttachment = user.role === 'ADMIN' || 
-                           user.role === 'DEPUTY' || 
+                           user.role === 'DEPUTY_ADMIN' || 
                            task.assignedToId === user.id ||
                            task.object.managerId === user.id;
 
@@ -86,31 +84,25 @@ export async function POST(
       return NextResponse.json({ message: 'Файл слишком большой (максимум 10MB)' }, { status: 400 });
     }
 
-    // Создаем директорию для вложений, если её нет
-    const uploadsDir = join(process.cwd(), 'public', 'uploads', 'reporting-tasks');
-    try {
-      await mkdir(uploadsDir, { recursive: true });
-    } catch (error) {
-      // Директория уже существует
-    }
+    console.log('📤 Загрузка вложения в Supabase Storage:', {
+      taskId,
+      fileName: file.name,
+      fileSize: file.size,
+      mimeType: file.type
+    });
 
-    // Генерируем уникальное имя файла
-    const fileExtension = file.name.split('.').pop();
-    const fileName = `${randomUUID()}.${fileExtension}`;
-    const filePath = join(uploadsDir, fileName);
+    // Загружаем файл в Supabase Storage
+    const fileUrl = await uploadToSupabase(file, 'uploads', 'reporting-tasks');
 
-    // Сохраняем файл
-    const bytes = await file.arrayBuffer();
-    const buffer = Buffer.from(bytes);
-    await writeFile(filePath, buffer);
+    console.log('✅ Вложение успешно загружено:', fileUrl);
 
     // Создаем запись в базе данных
     const attachment = await prisma.reportingTaskAttachment.create({
       data: {
         taskId,
-        fileName,
+        fileName: file.name,
         originalName: file.name,
-        filePath: `/uploads/reporting-tasks/${fileName}`,
+        filePath: fileUrl,
         fileSize: file.size,
         mimeType: file.type,
         uploadedById: user.id

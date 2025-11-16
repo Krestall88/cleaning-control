@@ -2,11 +2,14 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
+import ManualViewer from '@/components/ManualViewer';
+import { BookOpen } from 'lucide-react';
 
 export default function LoginPage() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
+  const [showManual, setShowManual] = useState(false);
   const router = useRouter();
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -30,12 +33,10 @@ export default function LoginPage() {
       document.cookie = `token=${token}; path=/; max-age=86400;`; // Expires in 1 day
 
       // Редирект в зависимости от роли
-      if (user.role === 'MANAGER' || user.role === 'SENIOR_MANAGER') {
-        router.push('/objects'); // Менеджеры и старшие менеджеры → Объекты
-      } else if (user.role === 'ACCOUNTANT') {
+      if (user.role === 'ACCOUNTANT') {
         router.push('/inventory'); // Бухгалтер → Инвентарь
       } else {
-        router.push('/'); // Админ, зам админа и зам → Дашборд
+        router.push('/'); // Остальные → Дашборд
       }
     } catch (err: any) {
       setError(err.message);
@@ -47,45 +48,10 @@ export default function LoginPage() {
     setPassword(userPassword);
   };
 
-  const testUsers = [
-    { email: 'admin@example.com', password: 'password123', label: 'Администратор', color: 'bg-purple-500 hover:bg-purple-600' },
-    { email: 'deputy@example.com', password: 'password123', label: 'Зам. администратора', color: 'bg-indigo-500 hover:bg-indigo-600' },
-    { email: 'accountant@example.com', password: 'password123', label: 'Бухгалтер', color: 'bg-green-500 hover:bg-green-600' },
-    { email: 'manager1@example.com', password: 'password123', label: 'Менеджер 1', color: 'bg-blue-500 hover:bg-blue-600' },
-    { email: 'manager2@example.com', password: 'password123', label: 'Менеджер 2', color: 'bg-blue-500 hover:bg-blue-600' },
-  ];
-
   return (
     <div className="flex items-center justify-center min-h-screen bg-gray-100">
       <div className="p-8 bg-white rounded shadow-md w-96">
         <h2 className="text-2xl font-bold mb-6 text-center">Вход в систему</h2>
-        
-        {/* Кнопки быстрого входа */}
-        <div className="mb-6">
-          <p className="text-sm text-gray-600 mb-3 text-center">Быстрый вход:</p>
-          <div className="grid grid-cols-2 gap-2">
-            {testUsers.map((user) => (
-              <button
-                key={user.email}
-                type="button"
-                onClick={() => quickLogin(user.email, user.password)}
-                className={`px-3 py-2 text-white text-sm rounded transition-colors ${user.color}`}
-              >
-                {user.label}
-              </button>
-            ))}
-          </div>
-        </div>
-
-        <div className="relative mb-6">
-          <div className="absolute inset-0 flex items-center">
-            <div className="w-full border-t border-gray-300"></div>
-          </div>
-          <div className="relative flex justify-center text-sm">
-            <span className="px-2 bg-white text-gray-500">или введите данные</span>
-          </div>
-        </div>
-
         <form onSubmit={handleSubmit}>
           <div className="mb-4">
             <label className="block mb-2 text-sm font-medium text-gray-700">Email</label>
@@ -115,7 +81,25 @@ export default function LoginPage() {
             Войти
           </button>
         </form>
+
+        {/* Кнопка инструкции */}
+        <div className="mt-4">
+          <button
+            type="button"
+            onClick={() => setShowManual(true)}
+            className="w-full py-2 text-blue-600 bg-white border border-blue-600 rounded hover:bg-blue-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 flex items-center justify-center gap-2"
+          >
+            <BookOpen className="w-5 h-5" />
+            Инструкция пользователя
+          </button>
+        </div>
       </div>
+
+      {/* Компонент просмотра мануала */}
+      <ManualViewer
+        isOpen={showManual}
+        onClose={() => setShowManual(false)}
+      />
     </div>
   );
 }

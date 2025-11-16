@@ -1,8 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { writeFile } from 'fs/promises';
-import { join } from 'path';
+import { uploadToSupabase } from '@/lib/supabase';
 
-// POST /api/upload - Загрузка файлов (временная реализация для локальной разработки)
+// POST /api/upload - Загрузка файлов в Supabase Storage
 export async function POST(req: NextRequest) {
   try {
     const data = await req.formData();
@@ -22,30 +21,28 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ message: 'Файл слишком большой (максимум 10MB)' }, { status: 400 });
     }
 
-    const bytes = await file.arrayBuffer();
-    const buffer = Buffer.from(bytes);
+    console.log('📤 Загрузка файла в Supabase Storage:', {
+      name: file.name,
+      size: file.size,
+      type: file.type
+    });
 
-    // Генерируем уникальное имя файла
-    const timestamp = Date.now();
-    const extension = file.name.split('.').pop();
-    const filename = `${timestamp}-${Math.random().toString(36).substring(7)}.${extension}`;
+    // Загружаем файл в Supabase Storage
+    const fileUrl = await uploadToSupabase(file, 'uploads', 'photos');
 
-    // Сохраняем в папку public/uploads (для локальной разработки)
-    const path = join(process.cwd(), 'public', 'uploads', filename);
-    await writeFile(path, buffer);
-
-    // Возвращаем URL файла
-    const fileUrl = `/uploads/${filename}`;
+    console.log('✅ Файл успешно загружен:', fileUrl);
 
     return NextResponse.json({ 
       url: fileUrl,
-      filename,
+      filename: file.name,
       size: file.size,
       type: file.type
     });
 
   } catch (error) {
-    console.error('Ошибка при загрузке файла:', error);
-    return NextResponse.json({ message: 'Ошибка при загрузке файла' }, { status: 500 });
+    console.error('❌ Ошибка при загрузке файла:', error);
+    return NextResponse.json({ 
+      message: 'Ошибка при загрузке файла: ' + (error instanceof Error ? error.message : 'Неизвестная ошибка')
+    }, { status: 500 });
   }
 }
