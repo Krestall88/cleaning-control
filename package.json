@@ -17,6 +17,7 @@
     "prisma:studio": "prisma studio",
     "prisma:seed": "ts-node prisma/seed.ts",
     "reset-tasks": "tsx scripts/reset-completed-tasks.ts",
+    "reset-completed-tasks": "tsx scripts/reset-completed-tasks.ts",
     "export-object-names": "tsx scripts/update-object-names.ts export",
     "generate-object-mapping": "tsx scripts/generate-object-mapping.ts",
     "update-object-names": "tsx scripts/update-object-names.ts",

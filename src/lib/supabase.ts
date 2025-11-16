@@ -1,19 +1,29 @@
 import { createClient } from '@supabase/supabase-js';
 
 // Supabase клиент для работы с Storage
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
+const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY || '';
 
-if (!supabaseUrl || !supabaseServiceKey) {
-  throw new Error('Supabase URL или Service Role Key не настроены в .env');
+// Создаем клиент только если переменные настроены
+let supabase: ReturnType<typeof createClient> | null = null;
+
+function getSupabaseClient() {
+  if (!supabase) {
+    if (!supabaseUrl || !supabaseServiceKey) {
+      throw new Error('Supabase URL или Service Role Key не настроены в .env');
+    }
+    
+    supabase = createClient(supabaseUrl, supabaseServiceKey, {
+      auth: {
+        autoRefreshToken: false,
+        persistSession: false
+      }
+    });
+  }
+  return supabase;
 }
 
-export const supabase = createClient(supabaseUrl, supabaseServiceKey, {
-  auth: {
-    autoRefreshToken: false,
-    persistSession: false
-  }
-});
+export { getSupabaseClient as supabase };
 
 /**
  * Загружает файл в Supabase Storage
@@ -28,6 +38,8 @@ export async function uploadToSupabase(
   folder?: string
 ): Promise<string> {
   try {
+    const client = getSupabaseClient();
+    
     // Генерируем уникальное имя файла
     const timestamp = Date.now();
     const randomString = Math.random().toString(36).substring(7);
@@ -61,7 +73,7 @@ export async function uploadToSupabase(
     });
 
     // Загружаем файл в Supabase Storage
-    const { data, error } = await supabase.storage
+    const { data, error } = await client.storage
       .from(bucket)
       .upload(filePath, fileBuffer, {
         contentType,
@@ -74,7 +86,7 @@ export async function uploadToSupabase(
     }
 
     // Получаем публичный URL
-    const { data: urlData } = supabase.storage
+    const { data: urlData } = client.storage
       .from(bucket)
       .getPublicUrl(filePath);
 
@@ -97,6 +109,8 @@ export async function deleteFromSupabase(
   bucket: string = 'uploads'
 ): Promise<void> {
   try {
+    const client = getSupabaseClient();
+    
     // Извлекаем путь к файлу из URL
     const url = new URL(fileUrl);
     const pathParts = url.pathname.split('/');
@@ -113,7 +127,7 @@ export async function deleteFromSupabase(
       filePath
     });
 
-    const { error } = await supabase.storage
+    const { error } = await client.storage
       .from(bucket)
       .remove([filePath]);
 
