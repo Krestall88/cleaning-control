@@ -686,8 +686,8 @@ model ManualSection {
   order       Int      // Порядок отображения
   content     String   @db.Text // Markdown контент
   icon        String?  // Эмодзи или иконка
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
 
   @@map("manual_sections")
 }
@@ -698,8 +698,8 @@ model ManualScreenshot {
   filename    String   // Имя файла (screenshot-001.png)
   description String   // Описание скриншота
   alt         String   // Alt текст для доступности
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
 
   @@map("manual_screenshots")
 }
