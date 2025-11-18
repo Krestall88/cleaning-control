@@ -98,6 +98,62 @@ export default function LoginPage() {
             </Button>
           </form>
 
+          {/* Быстрый выбор учетных записей */}
+          <div className="mt-6 space-y-3">
+            <p className="text-sm font-medium text-gray-700">Быстрый вход:</p>
+            <div className="grid grid-cols-2 gap-2">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => quickLogin('admin@example.com', 'password123')}
+              >
+                Администратор
+              </Button>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => quickLogin('deputy@example.com', 'password123')}
+              >
+                Заместитель
+              </Button>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => quickLogin('accountant@example.com', 'password123')}
+              >
+                Бухгалтер
+              </Button>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => quickLogin('manager1@example.com', 'password123')}
+              >
+                Менеджер 1
+              </Button>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => quickLogin('manager2@example.com', 'password123')}
+              >
+                Менеджер 2
+              </Button>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => quickLogin('manager3@example.com', 'password123')}
+              >
+                Менеджер 3
+              </Button>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => quickLogin('manager4@example.com', 'password123')}
+              >
+                Менеджер 4
+              </Button>
+            </div>
+          </div>
+
           {/* Кнопка инструкции */}
           <div className="mt-4">
             <Button
