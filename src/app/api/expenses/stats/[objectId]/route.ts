@@ -3,6 +3,7 @@ import { cookies } from 'next/headers';
 import { jwtVerify } from 'jose';
 import { prisma } from '@/lib/prisma';
 import { Decimal } from '@prisma/client/runtime/library';
+import { dedupeLimits } from '@/lib/expenseLimits';
 
 async function getUserFromToken(request: NextRequest) {
   const cookieStore = await cookies();
@@ -72,10 +73,12 @@ export async function GET(
     });
 
     // Получаем лимиты для объекта
-    const limits = await prisma.expenseCategoryLimit.findMany({
+    let limits = await prisma.expenseCategoryLimit.findMany({
       where: { objectId },
       include: { category: true }
     });
+
+    limits = dedupeLimits(limits);
 
     // Получаем расходы за месяц по категориям
     const expenses = await prisma.inventoryExpense.groupBy({
@@ -111,6 +114,25 @@ export async function GET(
 
       // Находим лимиты по этой категории
       const categoryLimits = limits.filter(l => l.categoryId === category.id);
+      
+      console.log(`📊 [${category.name}] Найдено лимитов: ${categoryLimits.length}`);
+      
+      // ВСЕГДА логируем все лимиты для категории
+      categoryLimits.forEach((lim, idx) => {
+        console.log(`  Лимит ${idx + 1}:`, {
+          id: lim.id,
+          amount: lim.amount.toString(),
+          periodType: lim.periodType,
+          startDate: lim.startDate,
+          endDate: lim.endDate,
+          month: lim.month,
+          year: lim.year
+        });
+      });
+      
+      if (categoryLimits.length > 1) {
+        console.warn(`⚠️⚠️⚠️ [${category.name}] КРИТИЧЕСКАЯ ОШИБКА: Найдено ${categoryLimits.length} лимитов! ДУБЛИКАТЫ!`);
+      }
 
       // Считаем общий лимит (ВСЕ типы лимитов, приведенные к месячному эквиваленту)
       let totalLimit = new Decimal(0);
@@ -122,15 +144,25 @@ export async function GET(
       const monthEnd = new Date(currentYear, currentMonth, 0, 23, 59, 59);
 
       for (const limit of categoryLimits) {
+        console.log(`🔍 [${category.name}] Обработка лимита:`, {
+          periodType: limit.periodType,
+          amount: limit.amount.toString(),
+          startDate: limit.startDate,
+          endDate: limit.endDate
+        });
+
         if (limit.periodType === 'MONTHLY') {
           if (limit.month === currentMonth && limit.year === currentYear) {
             totalLimit = totalLimit.add(limit.amount);
             hasLimit = true;
+            console.log(`✅ [${category.name}] MONTHLY: Добавлен ${limit.amount}, итого: ${totalLimit}`);
           }
         } else if (limit.periodType === 'DAILY') {
           // Ежедневный лимит * количество дней в месяце
-          totalLimit = totalLimit.add(new Decimal(limit.amount).times(daysInMonth));
+          const dailyTotal = new Decimal(limit.amount).times(daysInMonth);
+          totalLimit = totalLimit.add(dailyTotal);
           hasLimit = true;
+          console.log(`✅ [${category.name}] DAILY: ${limit.amount} * ${daysInMonth} = ${dailyTotal}, итого: ${totalLimit}`);
         } else if (limit.periodType === 'SEMI_ANNUAL') {
           // Полугодовой лимит / 6 месяцев (если период пересекается с текущим месяцем)
           if (limit.startDate && limit.endDate) {
@@ -138,9 +170,15 @@ export async function GET(
             const limitEnd = new Date(limit.endDate);
             // Проверяем пересечение периодов
             if (limitStart <= monthEnd && limitEnd >= monthStart) {
-              totalLimit = totalLimit.add(new Decimal(limit.amount).dividedBy(6));
+              const monthlyEquivalent = new Decimal(limit.amount).dividedBy(6);
+              totalLimit = totalLimit.add(monthlyEquivalent);
               hasLimit = true;
+              console.log(`✅ [${category.name}] SEMI_ANNUAL: ${limit.amount} / 6 = ${monthlyEquivalent}, итого: ${totalLimit}`);
+            } else {
+              console.log(`⚠️ [${category.name}] SEMI_ANNUAL: Период не пересекается с текущим месяцем`);
             }
+          } else {
+            console.log(`⚠️ [${category.name}] SEMI_ANNUAL: Нет startDate или endDate`);
           }
         } else if (limit.periodType === 'ANNUAL') {
           // Годовой лимит / 12 месяцев (если период пересекается с текущим месяцем)
@@ -149,9 +187,15 @@ export async function GET(
             const limitEnd = new Date(limit.endDate);
             // Проверяем пересечение периодов
             if (limitStart <= monthEnd && limitEnd >= monthStart) {
-              totalLimit = totalLimit.add(new Decimal(limit.amount).dividedBy(12));
+              const monthlyEquivalent = new Decimal(limit.amount).dividedBy(12);
+              totalLimit = totalLimit.add(monthlyEquivalent);
               hasLimit = true;
+              console.log(`✅ [${category.name}] ANNUAL: ${limit.amount} / 12 = ${monthlyEquivalent}, итого: ${totalLimit}`);
+            } else {
+              console.log(`⚠️ [${category.name}] ANNUAL: Период не пересекается с текущим месяцем`);
             }
+          } else {
+            console.log(`⚠️ [${category.name}] ANNUAL: Нет startDate или endDate`);
           }
         }
       }
