@@ -1,7 +1,8 @@
-import { NextRequest, NextResponse } from 'next/server';
+﻿import { NextRequest, NextResponse } from 'next/server';
 import { getUserFromToken } from '@/lib/auth-middleware';
 import { prisma } from '@/lib/prisma';
 import { notifyReportingTaskCreated } from '@/lib/server-notifications';
+import { getReportingTasksWithVirtual } from '@/lib/reporting-virtual-tasks';
 
 export async function GET(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
@@ -47,47 +48,19 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
       return NextResponse.json({ message: 'Нет доступа' }, { status: 403 });
     }
 
-    // Получаем реальные задачи отчетности
-    console.log('🔍 Загружаем задачи отчетности...');
-    const tasks = await prisma.reportingTask.findMany({
-      where: {
-        objectId: objectId
-      },
-      select: {
-        id: true,
-        title: true,
-        description: true,
-        status: true,
-        priority: true,
-        createdAt: true,
-        dueDate: true,
-        completedAt: true,
-        createdBy: {
-          select: {
-            name: true
-          }
-        },
-        assignedTo: {
-          select: {
-            name: true
-          }
-        },
-        _count: {
-          select: {
-            comments: true,
-            attachments: true
-          }
-        }
-      },
-      orderBy: {
-        createdAt: 'desc'
-      }
+    // Получаем задачи с виртуальными (генерируются на лету)
+    console.log('🔍 Загружаем задачи отчетности (с виртуальными)...');
+    const tasks = await getReportingTasksWithVirtual(objectId);
+    
+    // Сортируем по дате создания
+    const sortedTasks = tasks.sort((a, b) => {
+      return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
     });
     
-    console.log('📋 Найдено задач:', tasks.length);
+    console.log('📋 Найдено задач:', sortedTasks.length, '(включая виртуальные)');
 
     return NextResponse.json({
-      tasks
+      tasks: sortedTasks
     });
 
   } catch (error) {
@@ -108,21 +81,40 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
     }
 
     // Только админы и заместители могут создавать задачи
-    if (user.role !== 'ADMIN' && user.role !== 'DEPUTY') {
+    if (user.role !== 'ADMIN' && user.role !== 'DEPUTY_ADMIN') {
       return NextResponse.json({ message: 'Нет доступа' }, { status: 403 });
     }
 
     const objectId = params.id;
-    const { title, description, assignedToId, priority = 'MEDIUM', dueDate } = await req.json();
+    const { 
+      title, 
+      description, 
+      assignedToId, 
+      priority = 'MEDIUM', 
+      dueDate,
+      isRecurring = false,
+      frequency,
+      weekDay
+    } = await req.json();
 
     if (!title || !assignedToId) {
       return NextResponse.json({ message: 'Не указаны обязательные поля' }, { status: 400 });
     }
 
+    // Валидация периодичности
+    if (isRecurring) {
+      if (!frequency || !['DAILY', 'WEEKLY'].includes(frequency)) {
+        return NextResponse.json({ message: 'Неверная периодичность' }, { status: 400 });
+      }
+      if (frequency === 'WEEKLY' && (weekDay === undefined || weekDay < 0 || weekDay > 6)) {
+        return NextResponse.json({ message: 'Неверный день недели' }, { status: 400 });
+      }
+    }
+
     // Проверяем существование объекта
     const object = await prisma.cleaningObject.findUnique({
       where: { id: objectId },
-      select: { id: true }
+      select: { id: true, name: true }
     });
 
     if (!object) {
@@ -154,6 +146,14 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
       return NextResponse.json({ message: 'Исполнитель не найден' }, { status: 404 });
     }
 
+    // Логируем данные для отладки
+    console.log('📝 Создание задачи с периодичностью:', {
+      isRecurring,
+      frequency,
+      weekDay,
+      title
+    });
+
     // Создаем реальную задачу в базе данных
     const task = await prisma.reportingTask.create({
       data: {
@@ -163,7 +163,10 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
         dueDate: dueDate ? new Date(dueDate) : null,
         objectId,
         createdById: user.id,
-        assignedToId
+        assignedToId,
+        isRecurring,
+        frequency: isRecurring ? frequency : null,
+        weekDay: isRecurring && frequency === 'WEEKLY' ? weekDay : null
       },
       select: {
         id: true,
@@ -185,6 +188,14 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
         }
       }
     });
+
+    // Отправляем уведомление назначенному менеджеру
+    try {
+      await notifyReportingTaskCreated(assignedToId, task.id, title, object.name);
+    } catch (notifyError) {
+      console.error('Ошибка отправки уведомления:', notifyError);
+      // Не прерываем создание задачи из-за ошибки уведомления
+    }
 
     return NextResponse.json({
       task,
