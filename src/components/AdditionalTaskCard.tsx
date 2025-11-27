@@ -212,6 +212,20 @@ export default function AdditionalTaskCard({
       </CardHeader>
 
       <CardContent className="space-y-3 md:space-y-4">
+        {/* Информация о создателе (для заданий от клиентов) */}
+        {task.sourceDetails && typeof task.sourceDetails === 'object' && 'clientName' in task.sourceDetails && (
+          <div className="bg-blue-50 rounded-lg p-2 md:p-3 border border-blue-200">
+            <div className="flex items-center gap-2 text-xs md:text-sm text-blue-800">
+              <User className="h-4 w-4" />
+              <span className="font-medium">От клиента:</span>
+              <span>{(task.sourceDetails as any).clientName || 'Неизвестный клиент'}</span>
+              {(task.sourceDetails as any).telegramUsername && (
+                <span className="text-blue-600">@{(task.sourceDetails as any).telegramUsername}</span>
+              )}
+            </div>
+          </div>
+        )}
+
         {/* Содержимое задания */}
         <div className="bg-gray-50 rounded-lg p-2 md:p-3">
           <p className="text-xs md:text-sm whitespace-pre-wrap break-words">{task.content}</p>

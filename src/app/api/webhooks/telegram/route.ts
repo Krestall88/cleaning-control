@@ -528,6 +528,10 @@ async function processAdditionalTask(
         sourceDetails: {
           telegramId,
           userName,
+          clientName: binding.firstName && binding.lastName 
+            ? `${binding.firstName} ${binding.lastName}` 
+            : binding.firstName || binding.lastName || userName,
+          telegramUsername: binding.telegramUsername || message.from?.username,
           messageId: message.message_id,
           chatId: message.chat.id
         },
