@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -13,13 +13,18 @@ import {
   AlertTriangle,
   Clock,
   Eye,
-  Settings
+  Settings,
+  Camera,
+  MessageSquare,
+  Shield
 } from 'lucide-react';
 
 interface ObjectCardProps {
   object: {
     id: string;
     name: string;
+    requirePhotoForCompletion?: boolean;
+    requireCommentForCompletion?: boolean;
   };
   manager: {
     id: string;
@@ -89,6 +94,49 @@ const ObjectCard: React.FC<ObjectCardProps> = ({
 
   const hasDailyTasks = byPeriodicity?.some(period => isDailyFrequency(period.frequency)) || false;
 
+  // Определяем требования к закрытию задач
+  const getCompletionRequirements = () => {
+    const hasPhoto = object.requirePhotoForCompletion;
+    const hasComment = object.requireCommentForCompletion;
+    
+    if (hasPhoto && hasComment) {
+      return {
+        text: 'Закрытие только с фото и комментариями',
+        color: 'bg-red-50 text-red-900 border-2 border-red-500',
+        icon: Shield
+      };
+    } else if (hasPhoto) {
+      return {
+        text: 'Закрытие только с фото',
+        color: 'bg-orange-50 text-orange-900 border-2 border-orange-500',
+        icon: Camera
+      };
+    } else if (hasComment) {
+      return {
+        text: 'Закрытие только с комментариями',
+        color: 'bg-yellow-50 text-yellow-900 border-2 border-yellow-500',
+        icon: MessageSquare
+      };
+    } else {
+      return {
+        text: 'Разрешено свободное закрытие задач',
+        color: 'bg-green-50 text-green-900 border-2 border-green-500',
+        icon: CheckCircle
+      };
+    }
+  };
+
+  const requirements = getCompletionRequirements();
+  const RequirementIcon = requirements.icon;
+
+  // Логируем для отладки
+  console.log('🔍 ObjectCard:', {
+    objectName: object.name,
+    requirePhoto: object.requirePhotoForCompletion,
+    requireComment: object.requireCommentForCompletion,
+    requirementsText: requirements.text
+  });
+
   return (
     <Card className={`w-full shadow-sm hover:shadow-md transition-shadow overflow-hidden ${
       hasDailyTasks ? 'ring-2 ring-red-400 ring-opacity-30 border-red-200' : ''
@@ -129,6 +177,14 @@ const ObjectCard: React.FC<ObjectCardProps> = ({
                 <span className="truncate">{manager.phone}</span>
               </div>
             )}
+          </div>
+
+          {/* Индикатор требований к закрытию */}
+          <div className={`flex items-center gap-2 px-3 py-2 rounded-lg ${requirements.color} text-sm font-semibold shadow-sm ${
+            object.requirePhotoForCompletion || object.requireCommentForCompletion ? 'animate-pulse' : ''
+          }`}>
+            <RequirementIcon className="w-5 h-5 flex-shrink-0" />
+            <span className="truncate">{requirements.text}</span>
           </div>
           
           {/* Статистика и настройки */}

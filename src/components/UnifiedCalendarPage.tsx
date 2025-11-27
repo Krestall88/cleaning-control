@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -10,7 +10,9 @@ import UnifiedTaskCompletionModal from '@/components/UnifiedTaskCompletionModal'
 import SimpleTaskListModal from '@/components/SimpleTaskListModal';
 import ObjectCard from '@/components/ObjectCard';
 import ObjectCompletionSettingsModal from '@/components/ObjectCompletionSettingsModal';
-import { Calendar, Clock, TrendingUp, AlertTriangle, CheckCircle, Eye } from 'lucide-react';
+import TaskLocationBreadcrumb from '@/components/TaskLocationBreadcrumb';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Calendar, Clock, TrendingUp, AlertTriangle, CheckCircle, Eye, Camera } from 'lucide-react';
 import { UnifiedTask, CalendarResponse, ManagerTaskGroup, ObjectTaskGroup } from '@/lib/unified-task-system';
 
 // Простые утилиты для работы с датами
@@ -68,6 +70,7 @@ export default function UnifiedCalendarPage() {
   const [loading, setLoading] = useState(true);
   const [calendarData, setCalendarData] = useState<CalendarResponse | null>(null);
   const [taskCompletionModal, setTaskCompletionModal] = useState<UnifiedTask | null>(null);
+  const [photoViewerTask, setPhotoViewerTask] = useState<UnifiedTask | null>(null);
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [settingsModal, setSettingsModal] = useState<{ objectId: string; objectName: string } | null>(null);
   const [periodModalData, setPeriodModalData] = useState<{
@@ -76,6 +79,7 @@ export default function UnifiedCalendarPage() {
     frequency: string;
     tasks: UnifiedTask[];
   } | null>(null);
+  const [quickCompletingTasks, setQuickCompletingTasks] = useState<Set<string>>(new Set());
 
   // Загрузка объектов
   const loadObjects = async () => {
@@ -188,7 +192,6 @@ export default function UnifiedCalendarPage() {
           // Удаляем из текущих списков
           updatedData.overdue = updatedData.overdue.filter(t => t.id !== task.id);
           updatedData.today = updatedData.today.filter(t => t.id !== task.id);
-          updatedData.upcoming = updatedData.upcoming.filter(t => t.id !== task.id);
           
           // Добавляем в завершенные
           const completedTask: UnifiedTask = {
@@ -238,6 +241,46 @@ export default function UnifiedCalendarPage() {
     } catch (error) {
       console.error('❌ UNIFIED CLIENT: Ошибка завершения задачи:', error);
       throw error;
+    }
+  };
+
+  // Быстрое закрытие задачи (без модалки)
+  const handleQuickComplete = async (task: UnifiedTask) => {
+    setQuickCompletingTasks(prev => new Set(prev).add(task.id));
+    
+    try {
+      const response = await fetch('/api/tasks/bulk-complete', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ taskIds: [task.id], skipValidation: false })
+      });
+
+      if (response.ok) {
+        const result = await response.json();
+        console.log('✅ QUICK COMPLETE:', result);
+        
+        if (result.completed > 0) {
+          // Обновляем UI
+          await handleTaskCompletion(task);
+        } else if (result.skippedTasks && result.skippedTasks.length > 0) {
+          // Задача требует дополнительных данных - открываем модалку
+          alert(result.skippedTasks[0].reason + '. Откроется форма для заполнения.');
+          setTaskCompletionModal(task);
+        }
+      } else {
+        const error = await response.json();
+        alert('Ошибка: ' + error.message);
+      }
+    } catch (error) {
+      console.error('❌ QUICK COMPLETE ERROR:', error);
+      alert('Ошибка при закрытии задачи');
+    } finally {
+      setQuickCompletingTasks(prev => {
+        const next = new Set(prev);
+        next.delete(task.id);
+        return next;
+      });
     }
   };
 
@@ -321,7 +364,12 @@ export default function UnifiedCalendarPage() {
         
         if (!objectsMap.has(objectId)) {
           objectsMap.set(objectId, {
-            object: { id: objectId, name: objectName },
+            object: { 
+              id: objectId, 
+              name: objectName,
+              requirePhotoForCompletion: task.object?.requirePhotoForCompletion,
+              requireCommentForCompletion: task.object?.requireCommentForCompletion
+            },
             manager: managerGroup.manager,
             tasks: [],
             stats: { total: 0, completed: 0, overdue: 0, today: 0 },
@@ -671,20 +719,34 @@ export default function UnifiedCalendarPage() {
                     <div className="space-y-2">
                       {calendarData.overdue.map((task: UnifiedTask) => (
                         <div key={task.id} className="flex items-center justify-between p-3 bg-red-50 rounded border-l-4 border-red-400">
-                          <div>
+                          <div className="flex-1">
                             <div className="font-medium">{task.description}</div>
-                            <div className="text-sm text-gray-600">{task.objectName}</div>
+                            <div className="text-xs text-gray-600">
+                              <TaskLocationBreadcrumb task={task} showFullPath={true} compact={true} />
+                            </div>
                             <div className="text-xs text-gray-500">
                               Запланировано: {new Date(task.scheduledDate).toLocaleString('ru-RU')}
                             </div>
                           </div>
-                          <Button 
-                            size="sm" 
-                            variant="destructive"
-                            onClick={() => setTaskCompletionModal(task)}
-                          >
-                            Выполнить
-                          </Button>
+                          <div className="flex gap-2">
+                            <Button 
+                              size="sm" 
+                              variant="outline"
+                              onClick={() => handleQuickComplete(task)}
+                              disabled={quickCompletingTasks.has(task.id)}
+                              className="flex items-center gap-1"
+                            >
+                              <CheckCircle className="w-4 h-4" />
+                              {quickCompletingTasks.has(task.id) ? 'Закрытие...' : 'Быстро'}
+                            </Button>
+                            <Button 
+                              size="sm" 
+                              variant="destructive"
+                              onClick={() => setTaskCompletionModal(task)}
+                            >
+                              С деталями
+                            </Button>
+                          </div>
                         </div>
                       ))}
                     </div>
@@ -712,20 +774,34 @@ export default function UnifiedCalendarPage() {
                     <div className="space-y-2">
                       {calendarData.today.map((task: UnifiedTask) => (
                         <div key={task.id} className="flex items-center justify-between p-3 bg-blue-50 rounded">
-                          <div>
+                          <div className="flex-1">
                             <div className="font-medium">{task.description}</div>
-                            <div className="text-sm text-gray-600">{task.objectName}</div>
+                            <div className="text-xs text-gray-600">
+                              <TaskLocationBreadcrumb task={task} showFullPath={true} compact={true} />
+                            </div>
                             <div className="text-xs text-gray-500">
                               Запланировано: {new Date(task.scheduledDate).toLocaleString('ru-RU')}
                             </div>
                           </div>
-                          <Button 
-                            size="sm" 
-                            variant="default"
-                            onClick={() => setTaskCompletionModal(task)}
-                          >
-                            Выполнить
-                          </Button>
+                          <div className="flex gap-2">
+                            <Button 
+                              size="sm" 
+                              variant="outline"
+                              onClick={() => handleQuickComplete(task)}
+                              disabled={quickCompletingTasks.has(task.id)}
+                              className="flex items-center gap-1"
+                            >
+                              <CheckCircle className="w-4 h-4" />
+                              {quickCompletingTasks.has(task.id) ? 'Закрытие...' : 'Быстро'}
+                            </Button>
+                            <Button 
+                              size="sm" 
+                              variant="default"
+                              onClick={() => setTaskCompletionModal(task)}
+                            >
+                              С деталями
+                            </Button>
+                          </div>
                         </div>
                       ))}
                     </div>
@@ -755,7 +831,9 @@ export default function UnifiedCalendarPage() {
                         <div key={task.id} className="flex items-center justify-between p-3 bg-green-50 rounded">
                           <div>
                             <div className="font-medium">{task.description}</div>
-                            <div className="text-sm text-gray-600">{task.objectName}</div>
+                            <div className="text-xs text-gray-600">
+                              <TaskLocationBreadcrumb task={task} showFullPath={true} compact={true} />
+                            </div>
                             <div className="text-xs text-gray-500">
                               Выполнено: {task.completedAt ? new Date(task.completedAt).toLocaleString('ru-RU') : 'Неизвестно'}
                               {task.completedBy && ` • ${task.completedBy.name}`}
@@ -769,9 +847,16 @@ export default function UnifiedCalendarPage() {
                           <div className="flex items-center gap-2">
                             <Badge variant="secondary">Завершено</Badge>
                             {task.completionPhotos && task.completionPhotos.length > 0 && (
-                              <Badge variant="outline" className="text-xs">
-                                📷 {task.completionPhotos.length}
-                              </Badge>
+                              <Button
+                                type="button"
+                                variant="outline"
+                                size="sm"
+                                className="h-7 px-2 text-xs flex items-center gap-1"
+                                onClick={() => setPhotoViewerTask(task)}
+                              >
+                                <Camera className="w-3 h-3" />
+                                <span>{task.completionPhotos.length}</span>
+                              </Button>
                             )}
                           </div>
                         </div>
@@ -821,6 +906,7 @@ export default function UnifiedCalendarPage() {
             setPeriodModalData(null);
             setTaskCompletionModal(task);
           }}
+          onDataRefresh={loadCalendarData}
         />
       )}
 
@@ -836,6 +922,48 @@ export default function UnifiedCalendarPage() {
           objectId={settingsModal.objectId}
           objectName={settingsModal.objectName}
         />
+      )}
+
+      {photoViewerTask && (
+        <Dialog open={!!photoViewerTask} onOpenChange={() => setPhotoViewerTask(null)}>
+          <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2">
+                <Camera className="w-4 h-4" />
+                Фото по задаче
+              </DialogTitle>
+            </DialogHeader>
+            <div className="space-y-3">
+              <div>
+                <div className="font-medium text-gray-900 mb-1">{photoViewerTask.description}</div>
+                <div className="text-sm text-gray-600">{photoViewerTask.objectName}</div>
+                {photoViewerTask.completedAt && (
+                  <div className="text-xs text-gray-500 mt-1">
+                    Выполнено: {new Date(photoViewerTask.completedAt).toLocaleString('ru-RU')}
+                    {photoViewerTask.completedBy && ` • ${photoViewerTask.completedBy.name}`}
+                  </div>
+                )}
+                {photoViewerTask.completionComment && (
+                  <div className="text-xs text-gray-600 mt-2 italic">
+                    "{photoViewerTask.completionComment}"
+                  </div>
+                )}
+              </div>
+
+              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
+                {photoViewerTask.completionPhotos?.map((url, index) => (
+                  <div key={index} className="relative group">
+                    <img
+                      src={url}
+                      alt={`Фото ${index + 1}`}
+                      className="w-full h-32 object-cover rounded-lg border"
+                    />
+                  </div>
+                ))}
+              </div>
+            </div>
+          </DialogContent>
+        </Dialog>
       )}
     </div>
   );

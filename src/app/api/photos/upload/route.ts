@@ -1,8 +1,10 @@
-import { NextRequest, NextResponse } from 'next/server';
+﻿import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { cookies } from 'next/headers';
 import { jwtVerify } from 'jose';
-import { uploadToSupabase } from '@/lib/supabase';
+import { writeFile, mkdir } from 'fs/promises';
+import { join } from 'path';
+import { v4 as uuidv4 } from 'uuid';
 
 async function getUserFromToken(req: NextRequest) {
   try {
@@ -44,39 +46,33 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ message: 'Нет файлов для загрузки' }, { status: 400 });
     }
 
-    console.log('📤 Загрузка фотоотчетов в Supabase Storage:', {
-      filesCount: files.length,
-      taskId,
-      objectId,
-      userId: user.id
-    });
+    // Создаем директорию для фото, если её нет
+    const uploadsDir = join(process.cwd(), 'public', 'uploads', 'photos');
+    try {
+      await mkdir(uploadsDir, { recursive: true });
+    } catch (error) {
+      // Директория уже существует
+    }
 
     const uploadedPhotos = [];
 
     for (const file of files) {
       if (file.size === 0) continue;
 
-      // Проверяем тип файла
-      if (!file.type.startsWith('image/')) {
-        console.warn('⚠️ Пропущен файл (не изображение):', file.name);
-        continue;
-      }
+      // Генерируем уникальное имя файла
+      const fileExtension = file.name.split('.').pop();
+      const fileName = `${uuidv4()}.${fileExtension}`;
+      const filePath = join(uploadsDir, fileName);
 
-      // Проверяем размер файла (максимум 10MB)
-      if (file.size > 10 * 1024 * 1024) {
-        console.warn('⚠️ Пропущен файл (слишком большой):', file.name);
-        continue;
-      }
-
-      // Загружаем файл в Supabase Storage
-      const fileUrl = await uploadToSupabase(file, 'uploads', 'photos');
-
-      console.log('✅ Фото загружено:', fileUrl);
+      // Сохраняем файл
+      const bytes = await file.arrayBuffer();
+      const buffer = Buffer.from(bytes);
+      await writeFile(filePath, buffer);
 
       // Создаем запись в базе данных
       const photoReport = await prisma.photoReport.create({
         data: {
-          url: fileUrl,
+          url: `/uploads/photos/${fileName}`,
           comment: comment || null,
           uploaderId: user.id,
           objectId: objectId,

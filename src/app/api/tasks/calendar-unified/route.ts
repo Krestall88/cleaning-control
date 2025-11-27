@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from 'next/server';
+﻿import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { cookies } from 'next/headers';
 import { jwtVerify } from 'jose';
@@ -91,7 +91,6 @@ export async function GET(req: NextRequest) {
     const response: CalendarResponse = {
       overdue: statusGroups.overdue.sort((a, b) => a.scheduledDate.getTime() - b.scheduledDate.getTime()),
       today: statusGroups.today.sort((a, b) => a.scheduledDate.getTime() - b.scheduledDate.getTime()),
-      upcoming: statusGroups.upcoming.sort((a, b) => a.scheduledDate.getTime() - b.scheduledDate.getTime()),
       completed: statusGroups.completed.sort((a, b) => (b.completedAt?.getTime() || 0) - (a.completedAt?.getTime() || 0)),
       byManager: [],
       byObject: [],
@@ -103,7 +102,7 @@ export async function GET(req: NextRequest) {
     if (user.role === 'ADMIN' || user.role === 'DEPUTY_ADMIN' || user.role === 'MANAGER') {
       console.log('🔍 UNIFIED API: Группируем задачи для админа...');
       response.byManager = groupTasksByManager(allTasks);
-      response.byObject = groupTasksByObject(allTasks);
+      response.byObject = await groupTasksByObject(allTasks);
       
       console.log('🔍 UNIFIED API: Группировка завершена:', {
         managersCount: response.byManager.length,
@@ -126,12 +125,21 @@ export async function GET(req: NextRequest) {
         managersCount: response.byManager.length,
         objectsCount: response.byObject.length
       });
+
+      // Логируем требования объектов
+      response.byObject.forEach((objectGroup, index) => {
+        console.log(`🔍 UNIFIED API: Объект ${index + 1}:`, {
+          id: objectGroup.object.id,
+          name: objectGroup.object.name,
+          requirePhoto: objectGroup.object.requirePhotoForCompletion,
+          requireComment: objectGroup.object.requireCommentForCompletion
+        });
+      });
     }
 
     console.log('🔍 UNIFIED API: Итоговая статистика:', {
       overdue: response.overdue.length,
       today: response.today.length,
-      upcoming: response.upcoming.length,
       completed: response.completed.length,
       total: response.total
     });
