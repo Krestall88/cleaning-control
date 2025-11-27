@@ -12,13 +12,13 @@ type ManualSectionRecord = {
   content: string;
 };
 
+// GET /api/manual/sections/[slug] - получить конкретный раздел
 export async function GET(
   req: NextRequest,
-  context: { params: { slug: string } }
+  { params }: { params: Promise<{ slug: string }> }
 ) {
-  const { slug } = context.params;
-
   try {
+    const { slug } = await params;
     const manualSectionDelegate = (prisma as any).manualSection;
 
     if (manualSectionDelegate?.findUnique) {
@@ -30,13 +30,13 @@ export async function GET(
           title: true,
           icon: true,
           order: true,
-          content: true,
-        },
+          content: true
+        }
       });
 
       if (!section) {
         return NextResponse.json(
-          { error: 'Manual section not found' },
+          { error: 'Section not found' },
           { status: 404 }
         );
       }
@@ -44,6 +44,7 @@ export async function GET(
       return NextResponse.json(section);
     }
 
+    console.warn('manualSection delegate not found, using raw SQL fallback for slug');
     const rows = await prisma.$queryRaw<ManualSectionRecord[]>`
       SELECT id, slug, title, icon, "order", content
       FROM manual_sections
@@ -51,18 +52,16 @@ export async function GET(
       LIMIT 1
     `;
 
-    const section = rows[0];
-
-    if (!section) {
+    if (rows.length === 0) {
       return NextResponse.json(
-        { error: 'Manual section not found' },
+        { error: 'Section not found' },
         { status: 404 }
       );
     }
 
-    return NextResponse.json(section);
+    return NextResponse.json(rows[0]);
   } catch (error) {
-    console.error('Error fetching manual section by slug:', error);
+    console.error('Error fetching manual section:', error);
     return NextResponse.json(
       { error: 'Failed to fetch manual section' },
       { status: 500 }

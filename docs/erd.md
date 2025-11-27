@@ -455,8 +455,8 @@ ANNUAL ANNUAL
     Int order 
     String content 
     String icon "❓"
-    DateTime created_at 
-    DateTime updated_at 
+    DateTime createdAt 
+    DateTime updatedAt 
     }
   
 
@@ -466,8 +466,8 @@ ANNUAL ANNUAL
     String filename 
     String description 
     String alt 
-    DateTime created_at 
-    DateTime updated_at 
+    DateTime createdAt 
+    DateTime updatedAt 
     }
   
     "User" o|--|| "Role" : "enum:role"
